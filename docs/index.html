@@ -8,17 +8,14 @@
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <style>
-    *,*::before,*::after{box-sizing:border-box;}
-    html,body{margin:0;padding:0;background:#020810;color:#dde6f5;min-height:100vh;
-      font-family:'Courier New',Courier,monospace;}
-    #root{min-height:100vh;}
+    html,body{margin:0;padding:0;background:#080e1a;height:100%;overflow:hidden;}
+    #root{height:100vh;}
     #loading{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;
-      justify-content:center;background:#020810;color:rgba(56,189,248,.55);
+      justify-content:center;background:#080e1a;color:rgba(56,189,248,.5);
       font-family:'Courier New',monospace;font-size:12px;letter-spacing:.15em;gap:10px;
       z-index:9999;transition:opacity .4s;}
-    .spin{width:28px;height:28px;border:2px solid rgba(56,189,248,.12);
-      border-top-color:rgba(56,189,248,.65);border-radius:50%;
-      animation:spin .75s linear infinite;}
+    .spin{width:26px;height:26px;border:2px solid rgba(56,189,248,.1);
+      border-top-color:rgba(56,189,248,.6);border-radius:50%;animation:spin .75s linear infinite;}
     @keyframes spin{to{transform:rotate(360deg);}}
   </style>
 </head>
@@ -26,7 +23,7 @@
   <div id="loading">
     <div class="spin"></div>
     <span>⬡ PERIODIC TABLE</span>
-    <span style="font-size:8px;opacity:.35;letter-spacing:.1em">LOADING 118 ELEMENTS</span>
+    <span style="font-size:8px;opacity:.3;letter-spacing:.1em">LOADING 118 ELEMENTS</span>
   </div>
   <div id="root"></div>
   <script type="text/babel" data-presets="react">
@@ -175,6 +172,7 @@ const EDATA = {
   117:{ desc:"Named after Tennessee, home of Oak Ridge National Laboratory — which provided the crucial californium-249 and berkelium-249 targets. Tennessine sits below astatine and is the second heaviest halogen.", facts:["Tennessine required berkelium targets that took 250 days to produce at Oak Ridge's High Flux Isotope Reactor","The synthesis was confirmed in 2010 in a joint Russia-USA experiment at JINR Dubna","Tennessine-294 has a half-life of 51 milliseconds — longer than predicted, offering a hint of the 'island of stability'"], rarity:"Synthetic", loc:"Produced at JINR (Dubna, Russia) using targets from Oak Ridge National Laboratory and Vanderbilt University (USA)" },
   118:{ desc:"The heaviest element ever confirmed. Named after Yuri Oganessian, the world's leading superheavy element physicist — the first living person honored with an element name (alongside Seaborg). Only 5 atoms have ever been created.", facts:["Oganesson is the only synthetic noble gas — but relativistic effects are so strong it is predicted to be a solid at room temperature","The 5 confirmed atoms of oganesson decay in under 1 millisecond — chemistry is currently impossible","Oganesson has the highest atomic number and mass of any confirmed element — and likely the highest that will ever be named"], rarity:"Synthetic", loc:"Produced exclusively at JINR (Dubna, Russia) by bombarding californium-249 with calcium-48 ions; only 5 atoms ever created" },
 };
+
 
 const JANET_POS = {
   1:[1,31],
@@ -673,6 +671,7 @@ const STATES = {
 const SYNTHETIC = new Set([43,61,93,94,95,96,97,98,99,100,101,102,103,104,105,106,107,108,109,110,111,112,113,114,115,116,117,118]);
 
 
+
 const SHL = ["K","L","M","N","O","P","Q"];
 
 const EL = [
@@ -796,54 +795,478 @@ const EL = [
   [118,"Og","Oganesson","noble-gas",[2,8,18,32,32,18,8],294,7,18],
 ];
 
+
+
+const APP_CSS = `
+/* ── Reset & base ───────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; background: #080e1a; color: #e2ecff; font-family: 'Courier New', Courier, monospace; -webkit-font-smoothing: antialiased; }
+#root { height: 100vh; }
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(148,163,184,.18); border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(148,163,184,.32); }
+
+/* ── MD3 surface tokens ─────────────────────── */
+/* bg=#080e1a  s1=#0d1525  s2=#131f35  s3=#182540 */
+
+/* ── App shell ──────────────────────────────── */
+.app {
+  display: grid;
+  grid-template-rows: 52px 1fr auto;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* ── AppBar ─────────────────────────────────── */
+.appbar {
+  background: #0a1220;
+  border-bottom: 1px solid rgba(148,163,184,.1);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 14px;
+  z-index: 100;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+.appbar-title {
+  font-size: 11px;
+  letter-spacing: .18em;
+  opacity: .35;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.appbar-sep {
+  width: 1px;
+  height: 18px;
+  background: rgba(148,163,184,.12);
+  flex-shrink: 0;
+}
+.appbar-spacer { flex: 1; }
+.btn-group {
+  display: flex;
+  border: 1px solid rgba(148,163,184,.14);
+  border-radius: 6px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.btn-group button {
+  background: transparent;
+  border: none;
+  border-right: 1px solid rgba(148,163,184,.14);
+  color: rgba(203,213,225,.42);
+  cursor: pointer;
+  font-family: 'Courier New', monospace;
+  font-size: 9.5px;
+  letter-spacing: .04em;
+  padding: 4px 11px;
+  transition: background .12s, color .12s;
+  white-space: nowrap;
+}
+.btn-group button:last-child { border-right: none; }
+.btn-group button:hover { background: rgba(255,255,255,.05); color: rgba(203,213,225,.7); }
+.btn-group button.active { background: rgba(56,189,248,.12); color: #e2f0ff; border-color: rgba(56,189,248,.2); }
+.btn-group.orange button.active { background: rgba(249,115,22,.12); color: #fed7aa; border-color: rgba(249,115,22,.2); }
+.viewing-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid;
+  border-radius: 14px;
+  padding: 2px 8px 2px 10px;
+  font-size: 9px;
+  font-family: 'Courier New', monospace;
+  flex-shrink: 0;
+}
+.viewing-chip button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 11px;
+  line-height: 1;
+  opacity: .55;
+  transition: opacity .1s;
+  padding: 0;
+  color: inherit;
+}
+.viewing-chip button:hover { opacity: 1; }
+
+/* ── Main content area ──────────────────────── */
+.main {
+  display: flex;
+  overflow: hidden;
+  position: relative;
+}
+
+/* ── Table scroll area ──────────────────────── */
+.table-area {
+  flex: 1;
+  min-width: 0;
+  overflow: auto;
+  padding: 12px 14px;
+  transition: flex .25s ease;
+}
+
+/* ── Right detail panel ─────────────────────── */
+.detail-panel {
+  width: 360px;
+  flex-shrink: 0;
+  border-left: 1px solid rgba(148,163,184,.1);
+  background: #0d1525;
+  overflow-y: auto;
+  overflow-x: hidden;
+  transform: translateX(0);
+  transition: width .22s ease;
+}
+.detail-panel.closed {
+  width: 0;
+  overflow: hidden;
+}
+
+/* ── Legend bar ─────────────────────────────── */
+.legend-bar {
+  border-top: 1px solid rgba(148,163,184,.08);
+  background: #0a1220;
+  padding: 6px 14px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  overflow: hidden;
+  min-height: 36px;
+}
+.legend-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 7.5px;
+  opacity: .45;
+  white-space: nowrap;
+}
+.legend-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.legend-swatch {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+/* ── Element cells ──────────────────────────── */
+.ecell {
+  border-radius: 4px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  user-select: none;
+  position: relative;
+  transition: transform .1s, box-shadow .1s, border-color .1s, background .1s;
+}
+.ecell:hover {
+  transform: scale(1.26);
+  z-index: 10;
+}
+.ecell.selected {
+  z-index: 5;
+}
+.ecell .enum { opacity: .35; line-height: 1; margin-top: 2px; font-family: 'Courier New', monospace; }
+.ecell .esym { font-weight: bold; line-height: 1.05; font-family: 'Courier New', monospace; }
+.ecell .emass { opacity: .28; line-height: 1; margin-bottom: 2px; font-family: 'Courier New', monospace; }
+.ecell .syn-badge { position: absolute; top: 1px; right: 2px; opacity: .45; font-family: 'Courier New', monospace; }
+
+/* ── f-block labels ─────────────────────────── */
+.fblock-label {
+  font-size: 6.5px;
+  opacity: .16;
+  letter-spacing: .08em;
+  margin-bottom: 3px;
+  font-family: 'Courier New', monospace;
+}
+
+/* ── View description ───────────────────────── */
+.view-desc {
+  font-size: 8.5px;
+  opacity: .28;
+  margin-bottom: 8px;
+  max-width: 760px;
+  line-height: 1.6;
+  font-family: 'Courier New', monospace;
+}
+
+/* ── Detail panel content ───────────────────── */
+.dp-inner {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 328px;
+}
+.dp-identity {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+.dp-sym { font-size: 44px; font-weight: bold; line-height: 1; font-family: 'Courier New', monospace; flex-shrink: 0; }
+.dp-name { font-size: 14px; font-weight: bold; color: #e2ecff; font-family: 'Courier New', monospace; }
+.dp-cat  { font-size: 9px; letter-spacing: .04em; margin-top: 1px; }
+.dp-num  { font-size: 9px; opacity: .22; font-family: 'Courier New', monospace; margin-left: auto; flex-shrink: 0; }
+.badge-row { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 5px; }
+.badge {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid;
+  border-radius: 10px;
+  padding: 2px 7px;
+  font-size: 8.5px;
+  font-family: 'Courier New', monospace;
+  letter-spacing: .04em;
+  line-height: 1;
+}
+.desc-block {
+  font-size: 10.5px;
+  line-height: 1.65;
+  color: rgba(203,213,225,.6);
+  padding: 9px 11px;
+  background: rgba(255,255,255,.025);
+  border-radius: 6px;
+  border-left: 2px solid;
+}
+.dp-divider { height: 1px; background: rgba(148,163,184,.08); }
+
+/* ── Two-col section ────────────────────────── */
+.two-col { display: flex; gap: 12px; align-items: flex-start; }
+.bohr-col { flex-shrink: 0; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.shell-badges { display: flex; flex-wrap: wrap; gap: 3px; justify-content: center; }
+.shell-badge {
+  border: 1px solid rgba(148,163,184,.18);
+  border-radius: 4px;
+  padding: 2px 5px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: rgba(148,163,184,.04);
+  color: rgba(148,163,184,.42);
+}
+.shell-badge.val { font-weight: bold; }
+.shell-badge .sl { font-size: 6px; opacity: .6; font-family: 'Courier New', monospace; line-height: 1; }
+.shell-badge .sc { font-size: 10px; font-weight: bold; font-family: 'Courier New', monospace; line-height: 1; }
+.pne-label { font-size: 8px; color: rgba(148,163,184,.35); text-align: center; line-height: 1.5; }
+
+/* ── Stats column ───────────────────────────── */
+.stats-col { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 7px; }
+.stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+.stat-box { background: rgba(255,255,255,.035); border-radius: 5px; padding: 6px 7px; }
+.stat-k { font-size: 7px; opacity: .26; letter-spacing: .05em; line-height: 1; font-family: 'Courier New', monospace; }
+.stat-v { font-weight: bold; font-family: 'Courier New', monospace; line-height: 1.3; margin-top: 2px; }
+.en-bar { position: relative; height: 6px; background: rgba(255,255,255,.06); border-radius: 3px; overflow: visible; }
+.en-fill { height: 100%; border-radius: 3px; }
+.en-label { position: absolute; top: -10px; font-size: 8px; font-family: 'Courier New', monospace; transform: translateX(-50%); }
+.en-ends { display: flex; justify-content: space-between; margin-top: 3px; font-size: 7px; opacity: .22; font-family: 'Courier New', monospace; }
+.origin-box {
+  padding: 7px 9px;
+  background: rgba(255,255,255,.025);
+  border-radius: 5px;
+  border-left: 3px solid;
+  line-height: 1.5;
+  font-size: 9px;
+}
+.bohr-explainer {
+  background: rgba(255,255,255,.02);
+  border-radius: 5px;
+  padding: 8px 9px;
+  border: 1px solid rgba(148,163,184,.08);
+}
+.be-title { font-size: 7.5px; letter-spacing: .1em; margin-bottom: 6px; font-family: 'Courier New', monospace; }
+.be-line { font-size: 9px; color: rgba(203,213,225,.5); line-height: 1.55; margin-bottom: 3px; }
+.be-note { font-size: 8px; color: rgba(203,213,225,.28); line-height: 1.5; }
+
+/* ── Nav compass ────────────────────────────── */
+.nav-compass {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  grid-template-rows: auto auto auto;
+  gap: 3px;
+}
+.nav-btn {
+  border: 1px solid;
+  border-radius: 5px;
+  background: transparent;
+  cursor: pointer;
+  font-family: 'Courier New', monospace;
+  padding: 3px 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  transition: all .1s;
+}
+.nav-btn:hover { opacity: .75; }
+.nav-btn .na { font-size: 10px; font-weight: bold; line-height: 1.2; }
+.nav-btn .nl { font-size: 6.5px; opacity: .38; line-height: 1; }
+.nav-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3px 10px;
+  border: 1px solid;
+  border-radius: 5px;
+  font-size: 13px;
+  font-weight: bold;
+  font-family: 'Courier New', monospace;
+}
+
+/* ── Facts ──────────────────────────────────── */
+.facts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 10px; }
+.fact-item { display: flex; gap: 5px; align-items: flex-start; }
+.fact-bullet { font-size: 9px; flex-shrink: 0; margin-top: 2px; }
+.fact-text { font-size: 9.5px; line-height: 1.55; color: rgba(203,213,225,.57); }
+
+/* ── Location ───────────────────────────────── */
+.loc-box {
+  display: flex;
+  gap: 7px;
+  padding: 8px 11px;
+  background: rgba(255,255,255,.02);
+  border-radius: 5px;
+  border-left: 3px solid;
+  font-size: 9.5px;
+  line-height: 1.6;
+  color: rgba(203,213,225,.52);
+}
+.loc-icon { opacity: .32; flex-shrink: 0; }
+
+/* ── Section headers ────────────────────────── */
+.sec-hdr { font-size: 7px; opacity: .22; letter-spacing: .14em; margin-bottom: 6px; font-family: 'Courier New', monospace; }
+
+/* ── Bottom sheet (mobile) ──────────────────── */
+.sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(8,14,26,.82);
+  backdrop-filter: blur(6px);
+  z-index: 200;
+  animation: bsIn .15s ease;
+}
+@keyframes bsIn { from { opacity: 0; } to { opacity: 1; } }
+.bottom-sheet {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: #0d1525;
+  border-top: 1px solid rgba(148,163,184,.12);
+  border-radius: 16px 16px 0 0;
+  max-height: 88vh;
+  overflow-y: auto;
+  z-index: 201;
+  animation: bsUp .2s cubic-bezier(.32,1,.64,1);
+}
+@keyframes bsUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+.sheet-handle {
+  display: flex;
+  justify-content: center;
+  padding: 8px 0 4px;
+  flex-shrink: 0;
+}
+.sheet-handle-bar { width: 36px; height: 3px; background: rgba(148,163,184,.2); border-radius: 2px; }
+.sheet-close {
+  position: absolute;
+  top: 10px;
+  right: 14px;
+  background: none;
+  border: none;
+  color: rgba(148,163,184,.5);
+  font-size: 16px;
+  cursor: pointer;
+  font-family: 'Courier New', monospace;
+  padding: 2px 6px;
+  border-radius: 4px;
+  transition: .1s;
+  z-index: 10;
+}
+.sheet-close:hover { color: #e2ecff; background: rgba(255,255,255,.06); }
+
+/* ── Dufour node ────────────────────────────── */
+.dnode {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: transform .12s, box-shadow .12s;
+}
+.dnode:hover { transform: scale(1.38); z-index: 10; }
+
+/* ── Responsive: hide panel on <1200px ─────── */
+@media (max-width: 1199px) {
+  .detail-panel { display: none; }
+}
+`;
+
+
+
+// ─────────────────────────────────────────────────
+// Helpers
+// ─────────────────────────────────────────────────
+
 const STD_MAP = {};
 EL.forEach(e => { STD_MAP[`${e[6]},${e[7]}`] = e; });
 const JAN_MAP = {};
 EL.forEach(e => { const p=JANET_POS[e[0]]; if(p) JAN_MAP[`${p[0]},${p[1]}`]=e; });
 
-function getNeighbor(el, dir, view) {
-  let r, c;
-  if (view === 'janet') {
-    const p = JANET_POS[el[0]]; if(!p) return null;
-    [r,c] = p;
-  } else { [r,c] = [el[6],el[7]]; }
-  const [dr,dc] = dir==='up'?[-1,0]:dir==='down'?[1,0]:dir==='left'?[0,-1]:[0,1];
-  return (view==='janet'?JAN_MAP:STD_MAP)[`${r+dr},${c+dc}`] || null;
+function getNeighbor(el,dir,view){
+  let r,c;
+  if(view==='janet'){const p=JANET_POS[el[0]];if(!p)return null;[r,c]=p;}
+  else[r,c]=[el[6],el[7]];
+  const[dr,dc]=dir==='up'?[-1,0]:dir==='down'?[1,0]:dir==='left'?[0,-1]:[0,1];
+  return(view==='janet'?JAN_MAP:STD_MAP)[`${r+dr},${c+dc}`]||null;
 }
 
-function navAxisLabel(el, dir, view) {
-  const [,,,,,, trow, tcol] = el;
-  if (view === 'janet') {
-    const p = JANET_POS[el[0]]; if(!p) return '';
-    const col = p[1];
-    const blk = col<=14?'f-block':col<=24?'d-block':col<=30?'p-block':'s-block';
-    return (dir==='left'||dir==='right') ? `row ${p[0]} · ${blk}` : `col ${p[1]} · ${blk}`;
-  }
-  if (dir==='up'||dir==='down') return `same group · G${tcol}`;
-  const period = trow>7?(trow===8?6:7):trow;
-  return `same period · P${period}`;
+function navAxisLabel(el,dir,view){
+  const[,,,,,,trow,tcol]=el;
+  if(view==='janet'){const p=JANET_POS[el[0]];if(!p)return'';
+    const col=p[1];const blk=col<=14?'f-block':col<=24?'d-block':col<=30?'p-block':'s-block';
+    return(dir==='left'||dir==='right')?`row ${p[0]} · ${blk}`:`col ${p[1]} · ${blk}`;}
+  if(dir==='up'||dir==='down')return`same group · G${tcol}`;
+  const period=trow>7?(trow===8?6:7):trow;return`same period · P${period}`;
 }
 
-function enColor(en) {
-  if (!en) return '#3d3d5c';
-  const t = (en-0.7)/(4.0-0.7);
-  const r = Math.round(59+t*(239-59));
-  const g = Math.round(130+(t<0.5?t*2*(200-130):(1-(t-.5)*2)*(200-68)+68));
-  const b = Math.round(246-t*(246-68));
-  return `rgb(${r},${g},${b})`;
+function enColor(en){
+  if(!en)return'#4a5568';
+  const t=(en-.7)/(4.-.7);
+  return`rgb(${Math.round(59+t*180)},${Math.round(130+(t<.5?t*140:(1-(t-.5)*2)*132+68))},${Math.round(246-t*178)})`;
 }
 
-const STATE_META = {
-  gas:     { icon:'☁', label:'Gas at STP',     c:'#60a5fa' },
-  liquid:  { icon:'💧', label:'Liquid at STP',  c:'#34d399' },
-  solid:   { icon:'▣', label:'Solid at STP',    c:'#94a3b8' },
-  unknown: { icon:'⚗', label:'State Unknown',   c:'#a78bfa' },
+const STATE_META={
+  gas:    {icon:'☁',label:'Gas at STP',   c:'#60a5fa'},
+  liquid: {icon:'💧',label:'Liquid at STP',c:'#34d399'},
+  solid:  {icon:'▣',label:'Solid at STP', c:'#94a3b8'},
+  unknown:{icon:'⚗',label:'State Unknown',c:'#a78bfa'},
 };
 
-function dispCount(cnt,isVal){return isVal?Math.min(cnt,12):Math.min(cnt,8);}
+function getOxStates(n){
+  const OX={1:'+1,-1',2:'0',3:'+1',4:'+2',5:'+3,-3',6:'+4,-4',7:'+5,+3,-3',8:'-2',9:'-1',10:'0',11:'+1',12:'+2',13:'+3',14:'+4,-4',15:'+5,+3,-3',16:'+6,+4,-2',17:'+7,-1',18:'0',19:'+1',20:'+2',21:'+3',22:'+4,+3,+2',23:'+5,+4,+3',24:'+6,+3,+2',25:'+7,+4,+2',26:'+3,+2',27:'+3,+2',28:'+2',29:'+2,+1',30:'+2',31:'+3',32:'+4,+2',33:'+5,+3,-3',34:'+6,-2',35:'+5,-1',36:'0',37:'+1',38:'+2',39:'+3',40:'+4',41:'+5,+3',42:'+6,+4,+2',43:'+7,+4',44:'+4,+3',45:'+3',46:'+4,+2',47:'+1',48:'+2',49:'+3',50:'+4,+2',51:'+5,+3,-3',52:'+6,-2',53:'+7,-1',54:'0',55:'+1',56:'+2',79:'+3,+1',80:'+2,+1',82:'+4,+2',83:'+3',92:'+6,+4',94:'+4,+3'};
+  return OX[n]||(n>86?'+3,+4':'various');
+}
 
-// ── BohrCanvas ── accepts a `sz` prop so modal can embed at smaller size
-function BohrCanvas({ el, sz=260 }) {
+// ─────────────────────────────────────────────────
+// BohrCanvas
+// ─────────────────────────────────────────────────
+function BohrCanvas({ el, sz=220 }) {
   const ref = useRef(null);
   const rafRef = useRef(null);
   const stRef = useRef(null);
@@ -851,21 +1274,21 @@ function BohrCanvas({ el, sz=260 }) {
   const color = CATS[cat].c;
 
   useEffect(()=>{
-    const canvas=ref.current; if(!canvas) return;
+    const canvas=ref.current; if(!canvas)return;
     const dpr=window.devicePixelRatio||1;
     canvas.width=sz*dpr; canvas.height=sz*dpr;
     canvas.style.width=sz+'px'; canvas.style.height=sz+'px';
     const ctx=canvas.getContext('2d'); ctx.scale(dpr,dpr);
     const cx=sz/2,cy=sz/2;
-    const actShells=shells.filter(c=>c>0);
-    const nS=actShells.length,vi=nS-1;
-    const nucR=Math.max(11,sz*0.055);
-    const minR=nucR+sz*0.07,maxR=cx-sz*0.06;
-    const radii=actShells.map((_,i)=>nS===1?(minR+maxR)/2:minR+(maxR-minR)*i/(nS-1));
+    const act=shells.filter(c=>c>0);
+    const nS=act.length,vi=nS-1;
+    const nucR=Math.max(10,sz*.056);
+    const minR=nucR+sz*.072,maxR=cx-sz*.058;
+    const radii=act.map((_,i)=>nS===1?(minR+maxR)/2:minR+(maxR-minR)*i/(nS-1));
     if(!stRef.current||stRef.current.num!==num){
       stRef.current={num,t:0,
-        stars:Array.from({length:40},()=>({x:Math.random()*sz,y:Math.random()*sz,r:Math.random()*.7+.2,a:Math.random()*.45+.12,tw:Math.random()*Math.PI*2})),
-        angles:actShells.map((cnt,si)=>{const dc=dispCount(cnt,si===vi);return Array.from({length:dc},(_,ei)=>2*Math.PI*ei/dc+si*.42);}),
+        stars:Array.from({length:36},()=>({x:Math.random()*sz,y:Math.random()*sz,r:Math.random()*.7+.18,a:Math.random()*.4+.12,tw:Math.random()*Math.PI*2})),
+        angles:act.map((cnt,si)=>{const dc=si===vi?Math.min(cnt,12):Math.min(cnt,8);return Array.from({length:dc},(_,ei)=>2*Math.PI*ei/dc+si*.42);}),
       };
     }
     const SPEEDS=[3.2,1.6,.85,.48,.28,.16,.10]; let last=null;
@@ -873,109 +1296,102 @@ function BohrCanvas({ el, sz=260 }) {
       if(!last)last=ts; const dt=Math.min((ts-last)/1000,.05); last=ts;
       stRef.current.t+=dt; const t=stRef.current.t;
       stRef.current.angles=stRef.current.angles.map((arr,si)=>arr.map(a=>a+SPEEDS[Math.min(si,6)]*dt));
-      ctx.fillStyle='#020810'; ctx.fillRect(0,0,sz,sz);
+      ctx.fillStyle='#080e1a'; ctx.fillRect(0,0,sz,sz);
       stRef.current.stars.forEach(s=>{const tw=.4+.6*Math.sin(t*1.5+s.tw);ctx.fillStyle=`rgba(255,255,255,${s.a*tw})`;ctx.beginPath();ctx.arc(s.x,s.y,s.r,0,Math.PI*2);ctx.fill();});
       for(let si=nS-1;si>=0;si--){
-        const cnt=actShells[si],r=radii[si],isVal=si===vi;
-        ctx.save(); if(isVal){ctx.shadowBlur=12;ctx.shadowColor=color;}
+        const cnt=act[si],r=radii[si],isV=si===vi;
+        ctx.save();if(isV){ctx.shadowBlur=12;ctx.shadowColor=color;}
         ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);
-        ctx.strokeStyle=isVal?color+'bb':'rgba(140,170,220,0.14)'; ctx.lineWidth=isVal?1.6:.6; ctx.stroke(); ctx.restore();
-        const lfs=Math.max(6,sz*.027);
-        ctx.font=`${isVal?'bold ':''} ${lfs}px monospace`; ctx.fillStyle=isVal?color:'rgba(140,170,220,.35)'; ctx.textAlign='center'; ctx.textBaseline='bottom';
+        ctx.strokeStyle=isV?color+'bb':'rgba(148,163,184,.12)';ctx.lineWidth=isV?1.5:.6;ctx.stroke();ctx.restore();
+        const lfs=Math.max(6,sz*.026);
+        ctx.font=`${isV?'bold ':''}${lfs}px monospace`;ctx.fillStyle=isV?color:'rgba(148,163,184,.3)';ctx.textAlign='center';ctx.textBaseline='bottom';
         ctx.fillText(`${SHL[si]}:${cnt}`,cx,cy-r-2);
-        const dc=dispCount(cnt,isVal);
+        const dc=isV?Math.min(cnt,12):Math.min(cnt,8);
         stRef.current.angles[si].slice(0,dc).forEach(angle=>{
-          const ex=cx+r*Math.cos(angle),ey=cy+r*Math.sin(angle),er=sz*.028;
-          if(isVal){const g=ctx.createRadialGradient(ex,ey,0,ex,ey,er*2.8);g.addColorStop(0,'#fff');g.addColorStop(.3,color);g.addColorStop(1,'transparent');ctx.fillStyle=g;ctx.beginPath();ctx.arc(ex,ey,er*2.8,0,Math.PI*2);ctx.fill();ctx.fillStyle='white';ctx.beginPath();ctx.arc(ex,ey,er*.7,0,Math.PI*2);ctx.fill();}
-          else{ctx.fillStyle=si===0?'rgba(210,230,255,.85)':'rgba(160,190,240,.5)';ctx.beginPath();ctx.arc(ex,ey,si===0?er*.8:er*.6,0,Math.PI*2);ctx.fill();}
+          const ex=cx+r*Math.cos(angle),ey=cy+r*Math.sin(angle),er=sz*.027;
+          if(isV){const g=ctx.createRadialGradient(ex,ey,0,ex,ey,er*2.8);g.addColorStop(0,'#fff');g.addColorStop(.3,color);g.addColorStop(1,'transparent');ctx.fillStyle=g;ctx.beginPath();ctx.arc(ex,ey,er*2.8,0,Math.PI*2);ctx.fill();ctx.fillStyle='white';ctx.beginPath();ctx.arc(ex,ey,er*.65,0,Math.PI*2);ctx.fill();}
+          else{ctx.fillStyle=si===0?'rgba(210,230,255,.82)':'rgba(160,190,240,.48)';ctx.beginPath();ctx.arc(ex,ey,si===0?er*.78:er*.58,0,Math.PI*2);ctx.fill();}
         });
-        if(!isVal&&cnt>dc){ctx.fillStyle='rgba(140,170,220,.35)';ctx.font=`${Math.max(6,sz*.024)}px monospace`;ctx.textAlign='left';ctx.textBaseline='middle';ctx.fillText(`x${cnt}`,cx+r+3,cy);}
+        if(!isV&&cnt>dc){ctx.fillStyle='rgba(148,163,184,.3)';ctx.font=`${Math.max(6,sz*.022)}px monospace`;ctx.textAlign='left';ctx.textBaseline='middle';ctx.fillText(`x${cnt}`,cx+r+3,cy);}
       }
-      const pulse=1+.11*Math.sin(t*2.8);
+      const pulse=1+.1*Math.sin(t*2.8);
       const ng=ctx.createRadialGradient(cx,cy,0,cx,cy,nucR*2.1*pulse);
-      ng.addColorStop(0,'rgba(255,255,255,.95)');ng.addColorStop(.18,color+'ee');ng.addColorStop(.5,color+'44');ng.addColorStop(1,'transparent');
+      ng.addColorStop(0,'rgba(255,255,255,.92)');ng.addColorStop(.18,color+'ee');ng.addColorStop(.5,color+'33');ng.addColorStop(1,'transparent');
       ctx.fillStyle=ng;ctx.beginPath();ctx.arc(cx,cy,nucR*2.1*pulse,0,Math.PI*2);ctx.fill();
-      ctx.beginPath();ctx.arc(cx,cy,nucR,0,Math.PI*2);ctx.fillStyle='#060d1e';ctx.fill();ctx.strokeStyle=color;ctx.lineWidth=1.6;ctx.stroke();
+      ctx.beginPath();ctx.arc(cx,cy,nucR,0,Math.PI*2);ctx.fillStyle='#080e1a';ctx.fill();ctx.strokeStyle=color;ctx.lineWidth=1.5;ctx.stroke();
       const dots=Math.min(num,7);
-      for(let i=0;i<dots;i++){const a=(2*Math.PI*i/dots)+t*.5;ctx.fillStyle=i%2===0?'#ff5555':'#5588ff';ctx.beginPath();ctx.arc(cx+nucR*.52*Math.cos(a),cy+nucR*.52*Math.sin(a),Math.max(1.4,nucR*.14),0,Math.PI*2);ctx.fill();}
-      const fs=sym.length>2?Math.max(7,nucR*.55):sym.length===2?Math.max(9,nucR*.7):Math.max(10,nucR*.85);
+      for(let i=0;i<dots;i++){const a=(2*Math.PI*i/dots)+t*.5;ctx.fillStyle=i%2===0?'#f87171':'#60a5fa';ctx.beginPath();ctx.arc(cx+nucR*.52*Math.cos(a),cy+nucR*.52*Math.sin(a),Math.max(1.3,nucR*.13),0,Math.PI*2);ctx.fill();}
+      const fs=sym.length>2?Math.max(7,nucR*.5):sym.length===2?Math.max(8,nucR*.66):Math.max(10,nucR*.82);
       ctx.font=`bold ${fs}px monospace`;ctx.fillStyle='white';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(sym,cx,cy);
       rafRef.current=requestAnimationFrame(frame);
     }
     rafRef.current=requestAnimationFrame(frame);
     return()=>{if(rafRef.current)cancelAnimationFrame(rafRef.current);last=null;};
   },[num,sz]);
-  return <canvas ref={ref} style={{display:'block',borderRadius:'8px'}} />;
+  return <canvas ref={ref} style={{display:'block',borderRadius:8}} />;
 }
 
-// ── Cell ─────────────────────────────────────────
-function Cell({ el, onClick, colorMode, cw, ch }) {
+// ─────────────────────────────────────────────────
+// Cell
+// ─────────────────────────────────────────────────
+function Cell({ el, onClick, colorMode, cw, ch, selected }) {
   const [n,sym,,cat,,mass]=el;
-  const baseC=CATS[cat].c, baseBg=CATS[cat].b;
-  let cc=baseC,bg=baseBg;
-  if(colorMode==='en'){cc=enColor(EN_DATA[n]);bg=cc+'12';}
-  else if(colorMode==='cosmic'){cc=ORIGIN_INFO[ORIGIN[n]].c;bg=cc+'15';}
-  const massStr=mass>=100?mass.toFixed(1):mass.toFixed(2);
-  const state=STATES[n]; const isSyn=SYNTHETIC.has(n);
+  let cc=CATS[cat].c, bg=CATS[cat].b;
+  if(colorMode==='en'){cc=enColor(EN_DATA[n]);bg=cc+'11';}
+  if(colorMode==='cosmic'){cc=ORIGIN_INFO[ORIGIN[n]].c;bg=cc+'14';}
+  const mStr=mass>=100?mass.toFixed(1):mass.toFixed(2);
+  const state=STATES[n],isSyn=SYNTHETIC.has(n);
   return (
-    <div className="ecell" onClick={()=>onClick(el)}
-      style={{width:cw,height:ch,background:bg,'--cc':cc,
-        borderStyle:state==='gas'?'dashed':'solid',
-        borderWidth:state==='liquid'?2:1,
-        position:'relative'}}>
-      <span className="enum">{n}</span>
-      <span className="esym" style={{color:cc,fontSize:Math.max(10,cw*0.34)}}>{sym}</span>
-      <span className="emass" style={{fontSize:Math.max(5,cw*0.14)}}>{massStr}</span>
-      {isSyn&&<span style={{position:'absolute',top:1,right:2,fontSize:Math.max(5,cw*.13),opacity:.5,color:cc}}>⚗</span>}
+    <div className={`ecell${selected?' selected':''}`} onClick={()=>onClick(el)}
+      style={{
+        width:cw, height:ch, background:selected?cc+'24':bg,
+        border:`${state==='liquid'?2:1}px ${state==='gas'?'dashed':'solid'} ${selected?cc:cc+'55'}`,
+        boxShadow:selected?`0 0 0 1px ${cc}55, 0 0 14px ${cc}33`:'none',
+      }}>
+      <span className="enum" style={{fontSize:Math.max(5,cw*.115)}}>{n}</span>
+      <span className="esym" style={{color:cc,fontSize:Math.max(9,cw*.36)}}>{sym}</span>
+      <span className="emass" style={{fontSize:Math.max(4.5,cw*.13)}}>{mStr}</span>
+      {isSyn&&<span className="syn-badge" style={{fontSize:Math.max(5,cw*.13),color:cc}}>⚗</span>}
     </div>
   );
 }
 
-
-function getOxStates(n){
-  const OX={1:'+1,-1',2:'0',3:'+1',4:'+2',5:'+3,-3',6:'+4,-4',7:'+5,+3,-3',8:'-2',9:'-1',10:'0',11:'+1',12:'+2',13:'+3',14:'+4,-4',15:'+5,+3,-3',16:'+6,+4,-2',17:'+7,-1',18:'0',19:'+1',20:'+2',21:'+3',22:'+4,+3,+2',23:'+5,+4,+3',24:'+6,+3,+2',25:'+7,+4,+2',26:'+3,+2',27:'+3,+2',28:'+2',29:'+2,+1',30:'+2',31:'+3',32:'+4,+2',33:'+5,+3,-3',34:'+6,-2',35:'+5,-1',36:'0',37:'+1',38:'+2',39:'+3',40:'+4',41:'+5,+3',42:'+6,+4,+2',43:'+7,+4',44:'+4,+3',45:'+3',46:'+4,+2',47:'+1',48:'+2',49:'+3',50:'+4,+2',51:'+5,+3,-3',52:'+6,-2',53:'+7,-1',54:'0',55:'+1',56:'+2',79:'+3,+1',80:'+2,+1',82:'+4,+2',83:'+3',92:'+6,+4',94:'+4,+3'};
-  return OX[n]||(n>86?'+3,+4':'various');
-}
-
-// ── NavCompass ────────────────────────────────────
+// ─────────────────────────────────────────────────
+// NavCompass
+// ─────────────────────────────────────────────────
 function NavCompass({ el, view, onNavigate }) {
-  const [,sym,,cat,,,trow,tcol]=el;
+  const [,sym,,cat]=el;
   const color=CATS[cat].c;
   const nb={};
   ['up','left','right','down'].forEach(d=>{nb[d]=getNeighbor(el,d,view);});
-  const bs=(nc)=>({border:`1px solid ${nc}40`,color:nc,background:nc+'0c',borderRadius:5,
-    cursor:'pointer',fontFamily:'monospace',padding:'3px 7px',
-    display:'flex',flexDirection:'column',alignItems:'center',gap:1,minWidth:54,transition:'.1s'});
+
+  function NavBtn({dir}){
+    const n=nb[dir]; if(!n)return <div/>;
+    const nc=CATS[n[3]].c;
+    const txt=dir==='left'?`← ${n[1]}`:dir==='right'?`${n[1]} →`:dir==='up'?`↑ ${n[1]}`:`${n[1]} ↓`;
+    return (
+      <button className="nav-btn" onClick={()=>onNavigate(n)}
+        style={{borderColor:nc+'38',color:nc,background:nc+'0c'}}>
+        <span className="na">{txt}</span>
+        <span className="nl">{navAxisLabel(el,dir,view)}</span>
+      </button>
+    );
+  }
   return (
-    <div style={{display:'grid',gridTemplateColumns:'1fr auto 1fr',gridTemplateRows:'auto auto auto',gap:3}}>
-      <div/>{nb.up?<button style={bs(CATS[nb.up[3]].c)} onClick={()=>onNavigate(nb.up)}>
-        <span style={{fontSize:10,fontWeight:'bold'}}>↑ {nb.up[1]}</span>
-        <span style={{fontSize:6,opacity:.45}}>{navAxisLabel(el,'up',view)}</span>
-      </button>:<div/>}<div/>
-      {nb.left?<button style={{...bs(CATS[nb.left[3]].c),textAlign:'right'}} onClick={()=>onNavigate(nb.left)}>
-        <span style={{fontSize:10,fontWeight:'bold'}}>← {nb.left[1]}</span>
-        <span style={{fontSize:6,opacity:.45}}>{navAxisLabel(el,'left',view)}</span>
-      </button>:<div/>}
-      <div style={{display:'flex',alignItems:'center',justifyContent:'center',padding:'3px 9px',
-        background:color+'14',border:`1px solid ${color}44`,borderRadius:5,fontSize:13,color,fontWeight:'bold',fontFamily:'monospace'}}>
-        {sym}
-      </div>
-      {nb.right?<button style={{...bs(CATS[nb.right[3]].c),textAlign:'left'}} onClick={()=>onNavigate(nb.right)}>
-        <span style={{fontSize:10,fontWeight:'bold'}}>{nb.right[1]} →</span>
-        <span style={{fontSize:6,opacity:.45}}>{navAxisLabel(el,'right',view)}</span>
-      </button>:<div/>}
-      <div/>{nb.down?<button style={bs(CATS[nb.down[3]].c)} onClick={()=>onNavigate(nb.down)}>
-        <span style={{fontSize:10,fontWeight:'bold'}}>{nb.down[1]} ↓</span>
-        <span style={{fontSize:6,opacity:.45}}>{navAxisLabel(el,'down',view)}</span>
-      </button>:<div/>}<div/>
+    <div className="nav-compass">
+      <div/><NavBtn dir="up"/><div/>
+      <NavBtn dir="left"/>
+      <div className="nav-center" style={{borderColor:color+'40',color,background:color+'14'}}>{sym}</div>
+      <NavBtn dir="right"/>
+      <div/><NavBtn dir="down"/><div/>
     </div>
   );
 }
 
-// ── Modal ─────────────────────────────────────────
-// Two-column design: Bohr + shells on left, all stats/info on right.
-// Header row: identity + nav compass side by side.
-function Modal({ el, onClose, onNavigate, view }) {
+// ─────────────────────────────────────────────────
+// ElementDetail
+// ─────────────────────────────────────────────────
+function ElementDetail({ el, view, onNavigate, sz=215 }) {
   const [num,sym,name,cat,shells,mass,trow,tcol]=el;
   const {c,l}=CATS[cat];
   const ed=EDATA[num]||{};
@@ -990,416 +1406,347 @@ function Modal({ el, onClose, onNavigate, view }) {
   const enVal=EN_DATA[num];
   const enHex=enColor(enVal);
   const origInfo=ORIGIN_INFO[ORIGIN[num]];
-  const CANVAS_SZ=210;
-
-  const divider = <div style={{height:1,background:'rgba(140,170,220,.08)',margin:'10px 0'}}/>;
 
   return (
-    <div style={{position:'fixed',inset:0,zIndex:100,background:'rgba(2,8,16,.85)',
-      backdropFilter:'blur(8px)',display:'flex',alignItems:'center',justifyContent:'center',
-      animation:'fadeIn .15s ease'}} onClick={onClose}>
-      <div style={{
-        background:'#060e1c',
-        border:`1px solid ${c}33`,
-        borderRadius:14,
-        padding:'16px 18px',
-        width:'min(720px, 96vw)',
-        maxHeight:'92vh',
-        overflowY:'auto',
-        position:'relative',
-        fontFamily:'monospace',
-        scrollbarWidth:'thin',
-        scrollbarColor:`${c}22 transparent`,
-        animation:'popIn .18s cubic-bezier(.34,1.56,.64,1)',
-        boxShadow:`0 0 40px ${c}18, 0 24px 60px rgba(0,0,0,.6)`,
-      }} onClick={e=>e.stopPropagation()}>
-
-        {/* Close */}
-        <button onClick={onClose} style={{position:'absolute',top:10,right:12,background:'none',
-          border:'none',color:c,fontSize:17,cursor:'pointer',opacity:.55,fontFamily:'monospace',
-          padding:'2px 7px',borderRadius:4,transition:'.1s'}}
-          onMouseEnter={e=>e.target.style.opacity=1} onMouseLeave={e=>e.target.style.opacity=.55}>✕</button>
-
-        {/* ── TOP ROW: identity + compass ──────────── */}
-        <div style={{display:'flex',gap:14,alignItems:'flex-start',marginBottom:10}}>
-          {/* Identity block */}
-          <div style={{flex:1,minWidth:0}}>
-            <div style={{display:'flex',alignItems:'baseline',gap:8,flexWrap:'wrap'}}>
-              <span style={{fontSize:38,fontWeight:'bold',color:c,lineHeight:1}}>{sym}</span>
-              <span style={{fontSize:11,opacity:.35,letterSpacing:'.05em'}}>{num}</span>
-              <span style={{fontSize:13,fontWeight:'bold',color:'#dde6f5'}}>{name}</span>
-            </div>
-            <div style={{fontSize:10,color:c,opacity:.75,marginTop:1,letterSpacing:'.04em'}}>{l}</div>
-            <div style={{display:'flex',flexWrap:'wrap',gap:4,marginTop:6}}>
-              {ed.rarity&&<span className="badge" style={{background:rc+'18',borderColor:rc+'44',color:rc}}>◈ {ed.rarity}</span>}
-              {sm&&<span className="badge" style={{background:sm.c+'18',borderColor:sm.c+'44',color:sm.c}}>{sm.icon} {sm.label}</span>}
-              {isSyn&&<span className="badge" style={{background:'#a78bfa18',borderColor:'#a78bfa44',color:'#a78bfa'}}>⚗ Lab-made</span>}
-              <span className="badge" style={{background:origInfo.c+'18',borderColor:origInfo.c+'44',color:origInfo.c}}>✦ {origInfo.l}</span>
-            </div>
+    <div className="dp-inner">
+      {/* Identity */}
+      <div>
+        <div className="dp-identity">
+          <span className="dp-sym" style={{color:c}}>{sym}</span>
+          <div style={{flex:1}}>
+            <div className="dp-name">{name}</div>
+            <div className="dp-cat" style={{color:c+'cc'}}>{l}</div>
           </div>
-          {/* Nav compass */}
-          <div style={{flexShrink:0}}>
-            <NavCompass el={el} view={view} onNavigate={onNavigate}/>
+          <span className="dp-num">{num}</span>
+        </div>
+        <div className="badge-row">
+          {ed.rarity&&<span className="badge" style={{background:rc+'18',borderColor:rc+'40',color:rc}}>◈ {ed.rarity}</span>}
+          {sm&&<span className="badge" style={{background:sm.c+'18',borderColor:sm.c+'40',color:sm.c}}>{sm.icon} {sm.label}</span>}
+          {isSyn&&<span className="badge" style={{background:'#a78bfa18',borderColor:'#a78bfa40',color:'#a78bfa'}}>⚗ Lab-made</span>}
+          <span className="badge" style={{background:origInfo.c+'18',borderColor:origInfo.c+'40',color:origInfo.c}}>✦ {origInfo.l}</span>
+        </div>
+      </div>
+
+      {ed.desc&&<div className="desc-block" style={{borderLeftColor:c+'30'}}>{ed.desc}</div>}
+
+      <div className="dp-divider"/>
+
+      {/* Bohr + stats */}
+      <div className="two-col">
+        <div className="bohr-col">
+          <BohrCanvas el={el} sz={sz}/>
+          <div className="shell-badges">
+            {act.map((cnt,i)=>{
+              const isV=i===act.length-1;
+              return <div key={i} className={`shell-badge${isV?' val':''}`}
+                style={isV?{borderColor:c,background:c+'14',color:c}:{}}>
+                <span className="sl">{SHL[i]}</span>
+                <span className="sc">{cnt}</span>
+              </div>;
+            })}
+          </div>
+          <div className="pne-label">
+            <span style={{color:'#f87171aa'}}>{num}p⁺</span> · <span style={{color:'#60a5faaa'}}>~{neutrons}n</span> · <span style={{color:c+'88'}}>{num}e⁻</span>
           </div>
         </div>
 
-        {/* Description */}
-        {ed.desc&&<div style={{fontSize:11,lineHeight:1.65,color:'rgba(190,210,240,.65)',
-          padding:'8px 11px',background:'rgba(255,255,255,.025)',borderRadius:7,
-          borderLeft:`2px solid ${c}30`,marginBottom:12}}>{ed.desc}</div>}
-
-        {divider}
-
-        {/* ── TWO COLUMNS: Bohr | Stats ──────────── */}
-        <div style={{display:'flex',gap:14,alignItems:'flex-start'}}>
-
-          {/* Left: canvas + shells */}
-          <div style={{flexShrink:0,display:'flex',flexDirection:'column',gap:8}}>
-            <BohrCanvas el={el} sz={CANVAS_SZ}/>
-            {/* Shell config badges */}
-            <div style={{display:'flex',flexWrap:'wrap',gap:3,justifyContent:'center'}}>
-              {act.map((cnt,i)=>{
-                const isV=i===act.length-1;
-                return <div key={i} style={{border:`1px solid ${isV?c:'rgba(140,170,220,.2)'}`,borderRadius:4,
-                  padding:'2px 5px',display:'flex',flexDirection:'column',alignItems:'center',
-                  background:isV?c+'15':'rgba(140,170,220,.04)',color:isV?c:'rgba(140,170,220,.45)',fontWeight:isV?'bold':'normal'}}>
-                  <span style={{fontSize:6,opacity:.6}}>{SHL[i]}</span>
-                  <span style={{fontSize:11,fontFamily:'monospace'}}>{cnt}</span>
-                </div>;
-              })}
-            </div>
-            {/* Bohr legend */}
-            <div style={{fontSize:9,color:'rgba(140,170,220,.4)',textAlign:'center',lineHeight:1.5}}>
-              <span style={{color:'#ff5555a0'}}>● {num}p</span>
-              {' '}<span style={{color:'#5588ffa0'}}>● ~{neutrons}n</span>
-              {' '}<span style={{color:c+'99'}}>● {num}e⁻</span>
-            </div>
+        <div className="stats-col">
+          <div className="stats-grid">
+            {[['Mass',`${mass}u`],['Period / Grp',`${period} / ${group}`],
+              ['Valence e⁻',valence],['Ox. States',getOxStates(num)],
+              ['EN',enVal!=null?`${enVal} (P)`:'N/A'],['State',STATES[num]],
+            ].map(([k,v])=>(
+              <div key={k} className="stat-box">
+                <div className="stat-k">{k}</div>
+                <div className="stat-v" style={{color:c,fontSize:String(v).length>7?9:11}}>{v}</div>
+              </div>
+            ))}
           </div>
 
-          {/* Right: all the data */}
-          <div style={{flex:1,minWidth:0,display:'flex',flexDirection:'column',gap:10}}>
-
-            {/* Stats 3×3 grid */}
-            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:4}}>
-              {[['Mass',`${mass} u`],['Period',period],['Group',group],
-                ['Protons',num],['Neutrons',`~${neutrons}`],['Electrons',num],
-                ['Valence e⁻',valence],['Ox. States',getOxStates(num)],
-                ['EN',enVal!=null?enVal:'N/A']
-              ].map(([k,v])=>(
-                <div key={k} style={{background:'rgba(255,255,255,.04)',borderRadius:5,padding:'5px 7px'}}>
-                  <div style={{fontSize:7,opacity:.3,letterSpacing:'.04em',marginBottom:1}}>{k}</div>
-                  <div style={{fontSize:String(v).length>6?10:12,fontWeight:'bold',color:c,fontFamily:'monospace'}}>{v}</div>
-                </div>
-              ))}
+          {enVal!=null&&(
+            <div>
+              <div className="sec-hdr">ELECTRONEGATIVITY</div>
+              <div className="en-bar">
+                <div className="en-fill" style={{width:`${((enVal-.7)/3.3)*100}%`,background:`linear-gradient(90deg,#3b82f6,${enHex})`}}/>
+                <span className="en-label" style={{left:`${((enVal-.7)/3.3)*100}%`,color:enHex}}>{enVal}</span>
+              </div>
+              <div className="en-ends"><span>0.7 Fr</span><span>3.98 F</span></div>
             </div>
+          )}
 
-            {/* EN bar */}
-            {enVal!=null&&(
-              <div>
-                <div style={{fontSize:7,opacity:.28,letterSpacing:'.1em',marginBottom:4}}>ELECTRONEGATIVITY</div>
-                <div style={{position:'relative',height:7,background:'rgba(255,255,255,.06)',borderRadius:4}}>
-                  <div style={{width:`${((enVal-.7)/(4.-.7))*100}%`,height:'100%',borderRadius:4,
-                    background:`linear-gradient(90deg,#3b82f6,${enHex})`}}/>
-                  <div style={{position:'absolute',top:-9,left:`${((enVal-.7)/(4.-.7))*100}%`,
-                    transform:'translateX(-50%)',fontSize:8,color:enHex,fontFamily:'monospace'}}>{enVal}</div>
-                </div>
-                <div style={{display:'flex',justifyContent:'space-between',fontSize:7,opacity:.28,marginTop:2}}>
-                  <span>0.7 Fr</span><span>Pauling scale</span><span>3.98 F</span>
-                </div>
-              </div>
-            )}
+          <div className="origin-box" style={{borderLeftColor:origInfo.c}}>
+            <strong style={{color:origInfo.c,fontSize:9}}>{origInfo.l}</strong>
+            <span style={{color:'rgba(203,213,225,.5)',marginLeft:6,fontSize:9}}>{origInfo.d}</span>
+          </div>
 
-            {/* Cosmic origin */}
-            <div style={{fontSize:10,padding:'6px 9px',background:'rgba(255,255,255,.025)',
-              borderRadius:6,borderLeft:`3px solid ${origInfo.c}`,lineHeight:1.55}}>
-              <span style={{color:origInfo.c,fontWeight:'bold',fontSize:9}}>{origInfo.l}</span>
-              <span style={{color:'rgba(190,210,240,.55)',marginLeft:6,fontSize:9}}>{origInfo.d}</span>
-            </div>
-
-            {/* Bohr explainer (compact, in right col) */}
-            <div style={{background:'rgba(255,255,255,.02)',borderRadius:6,padding:'8px 10px',
-              border:'1px solid rgba(100,140,200,.1)',fontSize:10,lineHeight:1.55}}>
-              <div style={{color:c,fontSize:8,letterSpacing:'.1em',marginBottom:5,opacity:.8}}>⬡ BOHR MODEL</div>
-              <div style={{color:'rgba(190,210,240,.55)',marginBottom:3}}>
-                <strong style={{color:'#ff5555a0'}}>Nucleus</strong> — {num} proton{num!==1?'s':''} (+) and ~{neutrons} neutron{neutrons!==1?'s':''}, defines element identity.
-              </div>
-              <div style={{color:'rgba(190,210,240,.55)',marginBottom:3}}>
-                <strong style={{color:c+'aa'}}>Valence</strong> — outer {SHL[act.length-1]}-shell with <strong style={{color:c}}>{valence}e⁻</strong> controls all bonding.
-              </div>
-              <div style={{color:'rgba(190,210,240,.35)',fontSize:9}}>
-                Bohr is a classical model. Actual electrons follow quantum mechanics (orbital clouds, not fixed orbits).
-              </div>
-            </div>
-
+          <div className="bohr-explainer">
+            <div className="be-title" style={{color:c+'99'}}>⬡ BOHR MODEL</div>
+            <div className="be-line"><strong style={{color:'#f87171a0'}}>Nucleus</strong> — {num}p⁺ and ~{neutrons}n define this element.</div>
+            <div className="be-line"><strong style={{color:c+'aa'}}>Valence</strong> — outer {SHL[act.length-1]}-shell, <strong style={{color:c}}>{valence}e⁻</strong>, drives bonding.</div>
+            <div className="be-note">Classical model. Real electrons occupy quantum probability orbitals, not fixed paths.</div>
           </div>
         </div>
+      </div>
 
-        {divider}
+      <div className="dp-divider"/>
 
-        {/* ── FACTS ──────────────────────────────── */}
-        {ed.facts&&ed.facts.length>0&&(
-          <>
-            <div style={{fontSize:7,opacity:.28,letterSpacing:'.12em',marginBottom:6}}>NOTABLE FACTS</div>
-            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'4px 12px',marginBottom:12}}>
+      <div>
+        <div className="sec-hdr">NAVIGATE</div>
+        <NavCompass el={el} view={view} onNavigate={onNavigate}/>
+      </div>
+
+      {ed.facts&&ed.facts.length>0&&(
+        <>
+          <div className="dp-divider"/>
+          <div>
+            <div className="sec-hdr">NOTABLE FACTS</div>
+            <div className="facts-grid">
               {ed.facts.map((f,i)=>(
-                <div key={i} style={{display:'flex',gap:6,alignItems:'flex-start'}}>
-                  <span style={{color:c,fontSize:9,flexShrink:0,marginTop:2}}>▸</span>
-                  <span style={{fontSize:10,lineHeight:1.55,color:'rgba(190,210,240,.62)'}}>{f}</span>
+                <div key={i} className="fact-item">
+                  <span className="fact-bullet" style={{color:c}}>▸</span>
+                  <span className="fact-text">{f}</span>
                 </div>
               ))}
             </div>
-          </>
-        )}
-
-        {/* ── LOCATION ───────────────────────────── */}
-        {ed.loc&&(
-          <div style={{fontSize:10,lineHeight:1.6,color:'rgba(190,210,240,.55)',padding:'7px 11px',
-            background:'rgba(255,255,255,.025)',borderRadius:7,borderLeft:`3px solid ${c}35`,display:'flex',gap:7}}>
-            <span style={{opacity:.4,flexShrink:0}}>⊕</span>{ed.loc}
           </div>
-        )}
+        </>
+      )}
 
+      {ed.loc&&(
+        <>
+          <div className="dp-divider"/>
+          <div className="loc-box" style={{borderLeftColor:c+'35'}}>
+            <span className="loc-icon">⊕</span>
+            <span>{ed.loc}</span>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────
+// LegendBar
+// ─────────────────────────────────────────────────
+function LegendBar({ colorMode }) {
+  const catItems = Object.entries(CATS).map(([k,{l,c}])=>(
+    <div key={k} className="legend-item">
+      <div className="legend-swatch" style={{background:c+'2a',border:`1px solid ${c}`}}/>
+      {l}
+    </div>
+  ));
+  const rarItems = Object.entries(RARITY_COLORS).map(([r,c])=>(
+    <div key={r} className="legend-item">
+      <div className="legend-dot" style={{background:c}}/>
+      {r}
+    </div>
+  ));
+  const stateItems = Object.entries(STATE_META).map(([s,m])=>(
+    <div key={s} className="legend-item" style={{color:m.c}}>{m.icon} {s}</div>
+  ));
+  const origItems = ORIGIN_INFO.map(o=>(
+    <div key={o.id} className="legend-item">
+      <div className="legend-dot" style={{background:o.c}}/>
+      {o.l}
+    </div>
+  ));
+  const enItem = (
+    <div className="legend-item" style={{gap:6}}>
+      <span>Low 0.7</span>
+      <div style={{width:80,height:5,borderRadius:2,background:'linear-gradient(90deg,#3b82f6,#84cc16,#ef4444)',opacity:.65}}/>
+      <span>High 3.98</span>
+    </div>
+  );
+
+  return (
+    <div className="legend-bar">
+      {colorMode==='category'&&<div className="legend-group">{catItems}</div>}
+      {colorMode==='cosmic'&&<div className="legend-group">{origItems}</div>}
+      {colorMode==='en'&&<div className="legend-group">{enItem}{rarItems}</div>}
+      {colorMode!=='en'&&<div className="legend-group" style={{borderLeft:'1px solid rgba(148,163,184,.1)',paddingLeft:12}}>{rarItems}</div>}
+      <div className="legend-group" style={{borderLeft:'1px solid rgba(148,163,184,.1)',paddingLeft:12,gap:8}}>{stateItems}
+        <div className="legend-item"><span style={{borderBottom:'1px dashed rgba(148,163,184,.4)'}}>dashed</span>=gas · ⚗=synthetic</div>
       </div>
     </div>
   );
 }
 
-// ── PeriodicTable (auto-scaling) ──────────────────
+// ─────────────────────────────────────────────────
+// PeriodicTable (main)
+// ─────────────────────────────────────────────────
 function PeriodicTable() {
-  const [sel,setSel]=useState(null);
-  const [view,setView]=useState('standard');
-  const [colorMode,setColorMode]=useState('category');
-  const [cw,setCw]=useState(43);
-  const [legendOpen,setLegendOpen]=useState(false);
+  const [sel,setSel] = useState(null);
+  const [view,setView] = useState('standard');
+  const [colorMode,setColorMode] = useState('category');
+  const [cellW,setCellW] = useState(43);
+  const [isLg,setIsLg] = useState(window.innerWidth>=1200);
+  const tableRef = useRef(null);
 
-  // Auto-scale cell width to viewport
+  // Responsive breakpoint
   useEffect(()=>{
-    function calc(){
-      const avail=window.innerWidth-28;
-      const w=Math.min(54,Math.max(30,Math.floor(avail/18)-2));
-      setCw(w);
-    }
-    calc();
-    window.addEventListener('resize',calc);
-    return()=>window.removeEventListener('resize',calc);
+    const upd=()=>setIsLg(window.innerWidth>=1200);
+    window.addEventListener('resize',upd);
+    return()=>window.removeEventListener('resize',upd);
   },[]);
 
-  const ch=Math.round(cw*1.21);
-  const cwJ=Math.min(34,Math.max(22,Math.floor((window.innerWidth-28)/33)-1));
-  const chJ=Math.round(cwJ*1.28);
+  // ResizeObserver → recompute cell width
+  useEffect(()=>{
+    if(!tableRef.current)return;
+    const cols=view==='janet'?32:18;
+    const obs=new ResizeObserver(entries=>{
+      for(const e of entries){
+        const w=e.contentRect.width-4;
+        setCellW(Math.min(58,Math.max(26,Math.floor(w/cols)-2)));
+      }
+    });
+    obs.observe(tableRef.current);
+    return()=>obs.disconnect();
+  },[view,isLg,sel]);
+
+  const ch=Math.round(cellW*1.22);
   const mainEls=EL.filter(e=>e[6]<=7);
   const lantEls=EL.filter(e=>e[6]===8);
   const actEls =EL.filter(e=>e[6]===9);
-
-  const VIEWS=[{id:'standard',l:'Standard'},{id:'janet',l:'Left-Step'},{id:'dufour',l:'Spiral'}];
-  const COLORS=[{id:'category',l:'Category'},{id:'cosmic',l:'Cosmic Origin'},{id:'en',l:'Electronegativity'}];
+  const fIndent=2*(cellW+2);
+  const showPanel=isLg&&!!sel;
 
   function getDufourPos(el,W,H){
-    const act=el[4].filter(c=>c>0); const period=act.length; const v=act[act.length-1];
-    const a=(v/8)*2*Math.PI-Math.PI/2; const r=26+period*60;
+    const act=el[4].filter(c=>c>0);const v=act[act.length-1];
+    const a=(v/8)*2*Math.PI-Math.PI/2;const r=24+act.length*58;
     return{x:W/2+r*Math.cos(a),y:H/2+r*Math.sin(a)};
   }
 
-  const CSS=`
-    *{box-sizing:border-box;}
-    @keyframes fadeIn{from{opacity:0}to{opacity:1}}
-    @keyframes popIn{from{transform:scale(.88);opacity:0}to{transform:scale(1);opacity:1}}
-    .ecell{border:1px solid var(--cc,#334);border-radius:4px;
-      display:flex;flex-direction:column;align-items:center;justify-content:center;
-      cursor:pointer;user-select:none;position:relative;
-      transition:transform .1s,box-shadow .1s,border-color .1s;}
-    .ecell:hover{transform:scale(1.24);z-index:10;
-      box-shadow:0 0 12px var(--cc),0 0 3px var(--cc);border-color:var(--cc);}
-    .enum{opacity:.38;line-height:1;margin-top:2px;}
-    .esym{font-weight:bold;line-height:1.1;}
-    .emass{opacity:.3;line-height:1;margin-bottom:2px;}
-    .badge{display:inline-block;font-size:8.5px;letter-spacing:.05em;
-      border:1px solid;border-radius:10px;padding:1px 6px;font-family:monospace;}
-    .tab-btn{background:rgba(255,255,255,.04);border:1px solid rgba(140,170,220,.14);
-      border-radius:4px;color:rgba(190,210,240,.45);cursor:pointer;font-family:monospace;
-      font-size:8.5px;padding:3px 9px;letter-spacing:.04em;transition:.1s;white-space:nowrap;}
-    .tab-btn:hover{opacity:.8;}
-    .tab-btn.active{border-color:currentColor;color:#e2ecff;background:rgba(255,255,255,.07);}
-    .pholder{border:1px dashed rgba(140,170,220,.12);border-radius:4px;font-size:7px;
-      display:flex;align-items:center;justify-content:center;color:rgba(140,170,220,.2);font-family:monospace;}
-    .dnode{position:absolute;display:flex;align-items:center;justify-content:center;
-      border-radius:50%;cursor:pointer;font-family:monospace;transition:.12s;}
-    .dnode:hover{transform:scale(1.35);z-index:10;}
-  `;
-
-  const fblockIndent = 2*(cw+2);
-
-  return (
-    <div style={{background:'#020810',minHeight:'100vh',color:'#dde6f5',fontFamily:'monospace',padding:'10px 14px',overflowX:'auto'}}>
-      <style>{CSS}</style>
-
-      {/* ── TOOLBAR ─────────────────────────────── */}
-      <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:10,flexWrap:'wrap'}}>
-        <span style={{fontSize:11,letterSpacing:'.18em',opacity:.3,marginRight:4,whiteSpace:'nowrap'}}>⬡ PERIODIC TABLE</span>
-        <div style={{width:1,height:14,background:'rgba(140,170,220,.15)',flexShrink:0}}/>
-        <div style={{display:'flex',gap:3,flexWrap:'wrap'}}>
-          {VIEWS.map(t=>(
-            <button key={t.id} className={`tab-btn${view===t.id?' active':''}`}
-              style={{color:view===t.id?'#38bdf8':undefined}} onClick={()=>setView(t.id)}>{t.l}</button>
-          ))}
-        </div>
-        <div style={{width:1,height:14,background:'rgba(140,170,220,.15)',flexShrink:0}}/>
-        <div style={{display:'flex',gap:3,flexWrap:'wrap'}}>
-          {COLORS.map(t=>(
-            <button key={t.id} className={`tab-btn${colorMode===t.id?' active':''}`}
-              style={{color:colorMode===t.id?'#f97316':undefined}} onClick={()=>setColorMode(t.id)}>{t.l}</button>
-          ))}
-        </div>
-        <button className="tab-btn" style={{marginLeft:'auto'}} onClick={()=>setLegendOpen(x=>!x)}>
-          {legendOpen?'▲':'▼'} Legend
-        </button>
-      </div>
-
-      {/* ── STANDARD TABLE ─────────────────────── */}
+  const TableView = (
+    <div ref={tableRef} className="table-area">
       {view==='standard'&&(
         <>
-          <div style={{position:'relative',width:18*(cw+2)+'px',height:7*(ch+2)+'px'}}>
+          <div style={{position:'relative',width:18*(cellW+2)+'px',height:7*(ch+2)+'px'}}>
             {mainEls.map(e=>(
-              <div key={e[0]} style={{position:'absolute',left:(e[7]-1)*(cw+2)+'px',top:(e[6]-1)*(ch+2)+'px'}}>
-                <Cell el={e} onClick={setSel} colorMode={colorMode} cw={cw} ch={ch}/>
+              <div key={e[0]} style={{position:'absolute',left:(e[7]-1)*(cellW+2)+'px',top:(e[6]-1)*(ch+2)+'px'}}>
+                <Cell el={e} onClick={setSel} colorMode={colorMode} cw={cellW} ch={ch} selected={sel&&sel[0]===e[0]}/>
               </div>
             ))}
-            <div style={{position:'absolute',left:fblockIndent+'px',top:5*(ch+2)+'px'}}>
-              <div className="pholder" style={{width:cw,height:ch}}>57–71</div></div>
-            <div style={{position:'absolute',left:fblockIndent+'px',top:6*(ch+2)+'px'}}>
-              <div className="pholder" style={{width:cw,height:ch}}>89–103</div></div>
+            {[{t:5,l:'57–71'},{t:6,l:'89–103'}].map(({t,l})=>(
+              <div key={l} style={{position:'absolute',left:fIndent+'px',top:t*(ch+2)+'px',width:cellW,height:ch,
+                border:'1px dashed rgba(148,163,184,.12)',borderRadius:4,display:'flex',alignItems:'center',justifyContent:'center'}}>
+                <span style={{fontSize:7,opacity:.2,fontFamily:'monospace'}}>{l}</span>
+              </div>
+            ))}
           </div>
-          <div style={{marginTop:8}}>
-            <div style={{fontSize:6.5,opacity:.18,letterSpacing:'.08em',marginBottom:2,paddingLeft:fblockIndent+'px'}}>LANTHANIDES</div>
-            <div style={{display:'flex',gap:2,paddingLeft:fblockIndent+'px'}}>
-              {lantEls.map(e=><Cell key={e[0]} el={e} onClick={setSel} colorMode={colorMode} cw={cw} ch={ch}/>)}
+          {[{label:'LANTHANIDES',els:lantEls},{label:'ACTINIDES',els:actEls}].map(({label,els})=>(
+            <div key={label} style={{marginTop:label==='LANTHANIDES'?10:3}}>
+              <div className="fblock-label" style={{paddingLeft:fIndent+'px'}}>{label}</div>
+              <div style={{display:'flex',gap:2,paddingLeft:fIndent+'px'}}>
+                {els.map(e=><Cell key={e[0]} el={e} onClick={setSel} colorMode={colorMode} cw={cellW} ch={ch} selected={sel&&sel[0]===e[0]}/>)}
+              </div>
             </div>
-          </div>
-          <div style={{marginTop:2}}>
-            <div style={{fontSize:6.5,opacity:.18,letterSpacing:'.08em',marginBottom:2,paddingLeft:fblockIndent+'px'}}>ACTINIDES</div>
-            <div style={{display:'flex',gap:2,paddingLeft:fblockIndent+'px'}}>
-              {actEls.map(e=><Cell key={e[0]} el={e} onClick={setSel} colorMode={colorMode} cw={cw} ch={ch}/>)}
-            </div>
-          </div>
+          ))}
         </>
       )}
-
-      {/* ── JANET TABLE ────────────────────────── */}
       {view==='janet'&&(
         <>
-          <div style={{fontSize:8.5,opacity:.28,marginBottom:7,maxWidth:760,lineHeight:1.55}}>
-            <strong style={{opacity:.8}}>Janet Left-Step (1928):</strong> f→d→p→s left to right. s-block always rightmost. He in Group 2. All 118 elements inline — no f-block pullout.
-          </div>
-          <div style={{position:'relative',width:32*(cwJ+1)+'px',height:7*(chJ+1)+'px'}}>
+          <p className="view-desc"><strong>Janet Left-Step (1928):</strong> f→d→p→s left to right. He in Group 2 by electron config. All 118 inline — no f-block pullout.</p>
+          <div style={{position:'relative',width:32*(cellW+1)+'px',height:7*(ch+1)+'px'}}>
             {EL.map(e=>{const p=JANET_POS[e[0]];if(!p)return null;
-              return <div key={e[0]} style={{position:'absolute',left:(p[1]-1)*(cwJ+1)+'px',top:(p[0]-1)*(chJ+1)+'px'}}>
-                <Cell el={e} onClick={setSel} colorMode={colorMode} cw={cwJ} ch={chJ}/>
+              return <div key={e[0]} style={{position:'absolute',left:(p[1]-1)*(cellW+1)+'px',top:(p[0]-1)*(ch+1)+'px'}}>
+                <Cell el={e} onClick={setSel} colorMode={colorMode} cw={cellW} ch={ch} selected={sel&&sel[0]===e[0]}/>
               </div>;
             })}
           </div>
-          <div style={{display:'flex',gap:16,marginTop:6,fontSize:7.5,opacity:.22,flexWrap:'wrap'}}>
-            {[['f-block','cols 1–14'],['d-block','cols 15–24'],['p-block','cols 25–30'],['s-block','cols 31–32']].map(([b,c])=>(
-              <span key={b}><strong style={{opacity:.7}}>{b}</strong> {c}</span>
+          <div style={{display:'flex',gap:14,marginTop:7,flexWrap:'wrap'}}>
+            {[['f-block','1–14'],['d-block','15–24'],['p-block','25–30'],['s-block','31–32']].map(([b,c])=>(
+              <span key={b} style={{fontSize:7.5,opacity:.22,fontFamily:'monospace'}}><strong style={{opacity:.7}}>{b}</strong> cols {c}</span>
             ))}
           </div>
         </>
       )}
-
-      {/* ── DUFOUR SPIRAL ──────────────────────── */}
       {view==='dufour'&&(
         <>
-          <div style={{fontSize:8.5,opacity:.28,marginBottom:7,maxWidth:760,lineHeight:1.55}}>
-            <strong style={{opacity:.8}}>Dufour-inspired radial:</strong> Radius = electron shell count. Angle = valence electrons (0 at top = noble gases). Click any element to open full detail.
-          </div>
-          <div style={{position:'relative',width:'860px',height:'800px'}}>
+          <p className="view-desc"><strong>Dufour-inspired radial:</strong> Radius = period (electron shells). Angle = valence electrons. Noble gases anchor the top of each ring. Click any element.</p>
+          <div style={{position:'relative',width:'840px',height:'780px'}}>
             {EL.map(e=>{
               const cc=colorMode==='en'?enColor(EN_DATA[e[0]]):colorMode==='cosmic'?ORIGIN_INFO[ORIGIN[e[0]]].c:CATS[e[3]].c;
-              const pos=getDufourPos(e,860,800); const sz=25;
+              const pos=getDufourPos(e,840,780);const sz=26;
               return <div key={e[0]} className="dnode" onClick={()=>setSel(e)}
-                style={{left:pos.x-sz/2,top:pos.y-sz/2,width:sz,height:sz,border:`1px solid ${cc}`,background:cc+'14','--cc':cc}}>
-                <span style={{fontSize:e[1].length>2?6:e[1].length===2?7:9,color:cc,fontWeight:'bold'}}>{e[1]}</span>
+                style={{left:pos.x-sz/2,top:pos.y-sz/2,width:sz,height:sz,
+                  border:`1px solid ${cc}`,background:cc+'14',
+                  boxShadow:sel&&sel[0]===e[0]?`0 0 8px ${cc}`:'none'}}>
+                <span style={{fontSize:e[1].length>2?5.5:e[1].length===2?7:9,color:cc,fontWeight:'bold',fontFamily:'monospace'}}>{e[1]}</span>
               </div>;
             })}
-            <div style={{position:'absolute',left:'50%',top:'50%',transform:'translate(-50%,-50%)',fontSize:24,opacity:.1}}>⚛</div>
+            <span style={{position:'absolute',left:'50%',top:'50%',transform:'translate(-50%,-50%)',fontSize:28,opacity:.08}}>⚛</span>
           </div>
         </>
       )}
+    </div>
+  );
 
-      {/* ── LEGEND (collapsible) ─────────────────── */}
-      {legendOpen&&(
-        <div style={{marginTop:12,padding:'10px 12px',background:'rgba(255,255,255,.02)',
-          borderRadius:8,border:'1px solid rgba(140,170,220,.08)',display:'flex',gap:20,flexWrap:'wrap'}}>
-          {colorMode==='category'&&(
-            <div>
-              <div style={{fontSize:6.5,opacity:.25,letterSpacing:'.08em',marginBottom:5}}>ELEMENT CATEGORY</div>
-              <div style={{display:'flex',flexWrap:'wrap',gap:5}}>
-                {Object.entries(CATS).map(([k,{l,c}])=>(
-                  <div key={k} style={{display:'flex',alignItems:'center',gap:3,fontSize:7.5,opacity:.5}}>
-                    <div style={{width:7,height:7,borderRadius:2,background:c+'33',border:`1px solid ${c}`,flexShrink:0}}/>
-                    {l}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-          {colorMode==='cosmic'&&(
-            <div>
-              <div style={{fontSize:6.5,opacity:.25,letterSpacing:'.08em',marginBottom:5}}>COSMIC ORIGIN</div>
-              <div style={{display:'flex',flexWrap:'wrap',gap:5}}>
-                {ORIGIN_INFO.map(o=>(
-                  <div key={o.id} style={{display:'flex',alignItems:'center',gap:3,fontSize:7.5,opacity:.55}}>
-                    <div style={{width:7,height:7,borderRadius:'50%',background:o.c,flexShrink:0}}/>
-                    {o.l}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-          {colorMode==='en'&&(
-            <div>
-              <div style={{fontSize:6.5,opacity:.25,letterSpacing:'.08em',marginBottom:5}}>ELECTRONEGATIVITY</div>
-              <div style={{display:'flex',alignItems:'center',gap:6}}>
-                <span style={{fontSize:7.5,opacity:.4}}>Low 0.7 (Fr)</span>
-                <div style={{width:130,height:6,borderRadius:3,background:'linear-gradient(90deg,#3b82f6,#84cc16,#ef4444)',opacity:.7}}/>
-                <span style={{fontSize:7.5,opacity:.4}}>High 3.98 (F)</span>
-              </div>
-            </div>
-          )}
-          <div>
-            <div style={{fontSize:6.5,opacity:.25,letterSpacing:'.08em',marginBottom:5}}>RARITY</div>
-            <div style={{display:'flex',flexWrap:'wrap',gap:5}}>
-              {Object.entries(RARITY_COLORS).map(([r,c])=>(
-                <div key={r} style={{display:'flex',alignItems:'center',gap:3,fontSize:7.5,opacity:.5}}>
-                  <div style={{width:6,height:6,borderRadius:'50%',background:c}}/>
-                  {r}
-                </div>
-              ))}
-            </div>
+  const ViewingChip = sel && (
+    <div className="viewing-chip" style={{borderColor:CATS[sel[3]].c+'40',color:CATS[sel[3]].c,background:CATS[sel[3]].c+'0e'}}>
+      <span>{sel[1]} — {sel[2]}</span>
+      <button onClick={()=>setSel(null)}>✕</button>
+    </div>
+  );
+
+  return (
+    <>
+      <style>{APP_CSS}</style>
+      <div className="app">
+
+        {/* AppBar */}
+        <div className="appbar">
+          <span className="appbar-title">⬡ PERIODIC TABLE</span>
+          <div className="appbar-sep"/>
+          <div className="btn-group">
+            {['standard','janet','dufour'].map((v,i)=>(
+              <button key={v} className={view===v?'active':''} onClick={()=>setView(v)}>
+                {['Standard','Left-Step','Spiral'][i]}
+              </button>
+            ))}
           </div>
-          <div>
-            <div style={{fontSize:6.5,opacity:.25,letterSpacing:'.08em',marginBottom:5}}>STATE AT STP</div>
-            <div style={{display:'flex',gap:8}}>
-              {Object.entries(STATE_META).map(([s,m])=>(
-                <div key={s} style={{display:'flex',alignItems:'center',gap:3,fontSize:7.5,opacity:.5,color:m.c}}>
-                  {m.icon} {s}
-                </div>
-              ))}
-              <div style={{display:'flex',alignItems:'center',gap:3,fontSize:7.5,opacity:.35}}>
-                <span style={{borderBottom:'1px dashed rgba(140,170,220,.5)'}}>dashed</span> = gas
-              </div>
-            </div>
+          <div className="appbar-sep"/>
+          <div className="btn-group orange">
+            {['category','cosmic','en'].map((v,i)=>(
+              <button key={v} className={colorMode===v?'active':''} onClick={()=>setColorMode(v)}>
+                {['Category','Cosmic','EN'][i]}
+              </button>
+            ))}
+          </div>
+          <div className="appbar-spacer"/>
+          {ViewingChip}
+        </div>
+
+        {/* Main */}
+        <div className="main">
+          {TableView}
+          {/* Persistent right panel (≥1200px) */}
+          <div className={`detail-panel${showPanel?'':' closed'}`}>
+            {sel&&<ElementDetail el={sel} view={view} onNavigate={e=>setSel(e)} sz={200}/>}
           </div>
         </div>
-      )}
 
-      {sel&&<Modal el={sel} onClose={()=>setSel(null)} onNavigate={e=>setSel(e)} view={view}/>}
-    </div>
+        {/* Legend */}
+        <LegendBar colorMode={colorMode}/>
+
+        {/* Bottom sheet (<1200px) */}
+        {!isLg&&sel&&(
+          <div className="sheet-backdrop" onClick={()=>setSel(null)}>
+            <div className="bottom-sheet" onClick={e=>e.stopPropagation()}>
+              <button className="sheet-close" onClick={()=>setSel(null)}>✕</button>
+              <div className="sheet-handle"><div className="sheet-handle-bar"/></div>
+              <ElementDetail el={sel} view={view} onNavigate={e=>setSel(e)} sz={180}/>
+            </div>
+          </div>
+        )}
+
+      </div>
+    </>
   );
 }
 
-
-const _root = ReactDOM.createRoot(document.getElementById("root"));
+const _root = ReactDOM.createRoot(document.getElementById('root'));
 _root.render(React.createElement(PeriodicTable));
+
 
   </script>
   <script>
@@ -1407,7 +1754,7 @@ _root.render(React.createElement(PeriodicTable));
       requestAnimationFrame(function(){setTimeout(function(){
         var l=document.getElementById('loading');
         if(l){l.style.opacity='0';setTimeout(function(){l.remove();},400);}
-      },80);});
+      },100);});
     });
   </script>
 </body>
