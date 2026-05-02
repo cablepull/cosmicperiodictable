@@ -1,0 +1,1579 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Periodic Table of the Elements</title>
+
+  <!-- React 18 -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <!-- Babel standalone — transpiles JSX in the browser, no build step needed -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: #020810;
+      color: #dde6f5;
+      font-family: 'Courier New', Courier, monospace;
+      min-height: 100vh;
+    }
+    #root { min-height: 100vh; }
+
+    /* Loading state shown before Babel finishes */
+    #loading {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: #020810;
+      color: rgba(56,189,248,.6);
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      letter-spacing: .15em;
+      gap: 12px;
+      z-index: 9999;
+      transition: opacity .3s;
+    }
+    #loading .spinner {
+      width: 32px; height: 32px;
+      border: 2px solid rgba(56,189,248,.15);
+      border-top-color: rgba(56,189,248,.7);
+      border-radius: 50%;
+      animation: spin .8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+
+  <div id="loading">
+    <div class="spinner"></div>
+    <span>⬡ PERIODIC TABLE</span>
+    <span style="font-size:9px;opacity:.4;letter-spacing:.1em">INITIALISING 118 ELEMENTS</span>
+  </div>
+
+  <div id="root"></div>
+
+  <script type="text/babel" data-presets="react">
+const { useState, useEffect, useRef } = React;
+
+const CATS = {
+  "alkali-metal":    { l:"Alkali Metal",          c:"#ff6b35", b:"#1c0903" },
+  "alkaline-earth":  { l:"Alkaline Earth Metal",  c:"#fbbf24", b:"#1c1503" },
+  "transition-metal":{ l:"Transition Metal",       c:"#38bdf8", b:"#031218" },
+  "post-transition": { l:"Post-Transition Metal",  c:"#4ade80", b:"#031a0c" },
+  "metalloid":       { l:"Metalloid",              c:"#c084fc", b:"#0d031c" },
+  "nonmetal":        { l:"Reactive Nonmetal",      c:"#22d3ee", b:"#03161a" },
+  "halogen":         { l:"Halogen",                c:"#f472b6", b:"#1c0310" },
+  "noble-gas":       { l:"Noble Gas",              c:"#818cf8", b:"#03061c" },
+  "lanthanide":      { l:"Lanthanide",             c:"#d4a017", b:"#1c1103" },
+  "actinide":        { l:"Actinide",               c:"#f87171", b:"#1c0303" },
+};
+
+const RARITY_COLORS = {
+  "Abundant":       "#4ade80",
+  "Common":         "#22d3ee",
+  "Uncommon":       "#fbbf24",
+  "Rare":           "#f97316",
+  "Very Rare":      "#ef4444",
+  "Extremely Rare": "#a855f7",
+  "Synthetic":      "#818cf8",
+};
+
+const EDATA = {
+  1:  { desc:"The universe's most abundant element — the fundamental building block of stars, water, and organic chemistry. A colorless, odorless gas under normal conditions.", facts:["Makes up ~75% of all ordinary matter in the universe by mass","Powers the Sun through nuclear fusion, converting 600 million tons per second into helium","Liquid hydrogen at −253°C is used as rocket fuel by NASA and SpaceX"], rarity:"Abundant", loc:"Universal — seawater, natural gas wells (USA, Russia, Middle East), atmosphere" },
+  2:  { desc:"The second most abundant element in the universe, yet so light it escapes Earth's atmosphere. Helium on Earth comes almost entirely from underground natural gas deposits.", facts:["The only element that cannot be solidified at atmospheric pressure — requires 25 atm","Discovered in the Sun's spectrum in 1868 before being found on Earth","The world's helium supply is largely controlled by US federal reserves in Texas"], rarity:"Rare", loc:"Natural gas fields — USA (Texas, Kansas), Qatar, Algeria, Russia" },
+  3:  { desc:"The lightest solid element and the key metal of the modern battery revolution. Soft enough to cut with a knife, it reacts violently with water.", facts:["Lithium-ion batteries power over 1 billion smartphones and millions of electric vehicles","Lithium carbonate is used as a mood stabilizer for bipolar disorder","Could float on water — but would ignite instantly due to violent reactivity"], rarity:"Uncommon", loc:"Chile (Atacama Desert brine), Bolivia (Salar de Uyuni), Argentina, Australia (spodumene)" },
+  4:  { desc:"An exceptionally stiff, lightweight metal that is transparent to X-rays. Beryllium is six times stiffer than steel at a fraction of the weight, but highly toxic.", facts:["Beryllium is transparent to X-rays, making it ideal for X-ray window applications","Copper-beryllium alloys are used in precision instruments and non-sparking tools","Chronic beryllium exposure causes berylliosis, an incurable lung disease"], rarity:"Rare", loc:"USA (Utah — bertrandite), Brazil, China, Madagascar (beryl crystals)" },
+  5:  { desc:"A tough metalloid essential for borosilicate glass (Pyrex) and fiber reinforcement. Earth's crust holds vast borax deposits formed by volcanic activity.", facts:["Boron carbide is harder than any substance except diamond and cubic boron nitride","Turkey controls ~70% of the world's known boron reserves","Boron-10 is used in nuclear reactor control rods to absorb neutrons"], rarity:"Common", loc:"Turkey (world's largest — Kirka, Bigadic), USA (California — Death Valley), Russia" },
+  6:  { desc:"The element of life. Carbon's unique ability to form four bonds enables the 10+ million organic compounds that constitute all living things on Earth.", facts:["Diamond and graphite are both pure carbon — yet one is the hardest natural substance while the other is soft enough to write with","Carbon-14 dating can date organic material up to ~50,000 years old","A single layer of graphite (graphene) is stronger than steel and conducts electricity better than copper"], rarity:"Common", loc:"Worldwide — coal (USA, Russia, China, Australia), limestone, diamonds (South Africa, Russia, Botswana)" },
+  7:  { desc:"Nitrogen makes up 78% of the air we breathe, yet is so unreactive it was originally called 'azote' (lifeless). Nitrogen compounds are essential for all protein and DNA.", facts:["Lightning fixes atmospheric nitrogen — each bolt converts N2 into usable nitrates","Liquid nitrogen at −196°C is used to preserve biological samples, embryos, and tissue for decades","The Haber-Bosch process for synthesizing ammonia from nitrogen feeds roughly half the world's population"], rarity:"Abundant", loc:"Atmosphere worldwide (78%), Chile (Atacama — saltpeter/nitrate deposits)" },
+  8:  { desc:"The most abundant element in Earth's crust and the third most abundant in the universe. Oxygen drives combustion, corrosion, and cellular respiration.", facts:["Earth's oxygen-rich atmosphere is entirely biological in origin — produced by photosynthesis over 2.4 billion years","Liquid oxygen is a pale blue color and is strongly magnetic","Oxygen comes in three stable isotopes, used to reconstruct ancient climate records from ice cores"], rarity:"Abundant", loc:"Universal — atmosphere (21%), seawater, silicate minerals (crustal rocks everywhere)" },
+  9:  { desc:"The most electronegative and reactive element. Fluorine attacks almost all materials and is never found free in nature — it is always chemically bound.", facts:["Fluorine reacts with noble gases like xenon and krypton, once thought entirely inert","PTFE (Teflon) is made by polymerizing a fluorine compound — its C-F bonds are among the strongest in chemistry","Hydrogen fluoride dissolves glass by reacting with silicon dioxide to form soluble fluorosilicates"], rarity:"Common", loc:"South Africa, Mexico, China, Mongolia — in fluorite (fluorspar, CaF2)" },
+  10: { desc:"An inert noble gas that glows brilliant orange-red in discharge tubes. Despite being the fifth most abundant element in the universe, neon is rare in Earth's atmosphere.", facts:["'Neon' signs actually use many different noble gases — true neon produces orange-red, while argon and mercury produce blue","Neon has no known stable compounds — its full electron shell makes it essentially chemically inert","Liquid neon is used as a cryogenic refrigerant where liquid helium is unavailable"], rarity:"Uncommon", loc:"Atmosphere (18 ppm), extracted by fractional distillation of air — major producers: USA, Ukraine" },
+  11: { desc:"A soft, silver metal so reactive it must be stored in mineral oil. Sodium is essential for nerve function and is the primary ion in blood plasma.", facts:["A piece of sodium dropped in water explodes — the reaction produces hydrogen gas which ignites instantly","Sodium vapor lamps give highways their characteristic yellow-orange glow","The ocean contains ~1.4x10^21 grams of dissolved sodium chloride"], rarity:"Common", loc:"Worldwide — salt mines (Germany, Russia, USA), evaporite deposits, Dead Sea, Great Salt Lake, seawater" },
+  12: { desc:"The lightest structural metal, essential for aerospace, automotive, and the human skeleton. About 60% of the magnesium in the human body is stored in bones.", facts:["Magnesium burns with a blinding white light at 3,100°C and cannot be extinguished with water","Chlorophyll — the molecule that powers photosynthesis — contains a magnesium atom at its center","Magnesium alloys are used in race car wheels, laptop bodies, and airplane seat frames"], rarity:"Common", loc:"China (world leader), USA, Russia — seawater extraction, dolomite, magnesite deposits" },
+  13: { desc:"The most abundant metal in Earth's crust, yet once more valuable than gold. Aluminum's light weight, corrosion resistance, and recyclability make it indispensable.", facts:["The Washington Monument cap (1884) was made of aluminum — at the time priced comparably to silver","Recycling aluminum uses only 5% of the energy required to produce it from ore","The Boeing 737 is roughly 80% aluminum by structural weight"], rarity:"Abundant", loc:"Australia (Weipa, Gove), Guinea (Boke), Jamaica, Brazil, India — bauxite laterite deposits" },
+  14: { desc:"The second most abundant element in Earth's crust and the backbone of modern electronics. Silicon is the foundation of transistors, solar cells, and virtually all integrated circuits.", facts:["A single modern silicon chip can contain over 100 billion transistors — more than stars in the Milky Way","Silicon Valley gets its name from silicon's use in semiconductors, not from local geology","Pure silicon is a semiconductor — its conductivity can be tuned precisely by adding tiny amounts of other elements"], rarity:"Abundant", loc:"Universal — sand (SiO2) found on every beach, quartz veins worldwide, silicate rocks everywhere" },
+  15: { desc:"An element essential to all life — it is in every DNA molecule and ATP energy carrier. White phosphorus ignites spontaneously in air and was historically weaponized.", facts:["The human body contains about 700 grams of phosphorus — mostly in teeth and bones as calcium phosphate","Phosphorus was first isolated in 1669 from boiled urine — alchemists noted it glowed in the dark","At current consumption rates, global phosphate rock reserves may be depleted within 100-300 years"], rarity:"Common", loc:"Morocco (world's largest reserves — 70%+ of global supply), China, USA (Florida), Western Sahara" },
+  16: { desc:"A yellow, brittle nonmetal found near volcanoes and in sulfide ore deposits. One of the few elements known to ancient civilizations — mentioned in the Bible as 'brimstone'.", facts:["Sulfur is essential for two amino acids (cysteine and methionine) — it gives hair and nails their structure","Sulfur dioxide from volcanoes can trigger global cooling by forming reflective aerosols in the stratosphere","The distinctive smell near geothermal areas is hydrogen sulfide — one of sulfur's compounds"], rarity:"Common", loc:"Chile, USA (Texas — salt dome sulfur), Poland, volcanic regions worldwide (Iceland, Indonesia, Japan)" },
+  17: { desc:"A toxic, yellow-green halogen gas that reacts with nearly all elements. Chlorine is essential for water purification and is the foundation of the plastics and pharmaceutical industries.", facts:["Chlorine was used as a chemical weapon in World War I — the first large-scale use of chemical warfare","The distinctive smell of chlorinated pools is chloramines formed by reactions with nitrogen-containing compounds","Chlorine atoms in the stratosphere destroy ozone — a single Cl atom can demolish up to 100,000 ozone molecules"], rarity:"Common", loc:"Worldwide — seawater (1.9% chloride), rock salt deposits (Germany, USA, Russia), evaporite basins" },
+  18: { desc:"The most abundant noble gas in Earth's atmosphere at nearly 1%. Argon's chemical inertness makes it ideal as a shielding gas in welding and inside incandescent light bulbs.", facts:["Argon comprises 1.28% of Earth's atmosphere — more than carbon dioxide by a factor of 23","The word 'argon' comes from the Greek 'argos' meaning lazy or inactive","Argon is used to preserve the original copy of the US Declaration of Independence in sealed display cases"], rarity:"Common", loc:"Atmosphere worldwide (1.28%), extracted by fractional distillation of liquid air" },
+  19: { desc:"An essential mineral nutrient that regulates fluid balance and nerve signaling. Potassium is so reactive it ignites in water with a distinctive violet flame.", facts:["Bananas are famous for potassium, but potatoes, avocados, and leafy greens contain far more per serving","Potassium-40 is radioactive and is the primary source of natural radioactivity in the human body","The heart muscle depends on precise potassium/sodium balance — disruption causes fatal arrhythmias"], rarity:"Common", loc:"Canada (Saskatchewan — world's largest potash reserves), Russia, Belarus, Germany — sylvite, carnallite" },
+  20: { desc:"The fifth most abundant element in Earth's crust and essential for bone structure, cellular signaling, and muscle function. Calcium compounds form limestone, chalk, and marble.", facts:["The Great Barrier Reef is built almost entirely from calcium carbonate secreted by coral polyps","Calcium ions are the primary messenger for muscle contraction — including every heartbeat","Stalactites and stalagmites form when calcium bicarbonate dissolved in water precipitates as calcium carbonate"], rarity:"Abundant", loc:"Worldwide — limestone, chalk, gypsum, marble formations on every continent" },
+  21: { desc:"A rare transition metal lighter than titanium, prized for its strength-to-weight ratio. Scandium was predicted by Mendeleev before it was discovered.", facts:["Adding just 0.5% scandium to aluminum increases its strength by up to 40%","The Soviet Union produced scandium secretly for military aircraft during the Cold War","Only a few hundred kilograms of pure scandium are produced globally each year"], rarity:"Rare", loc:"China (primary), Russia, Ukraine, Philippines — in thortveitite, byproduct of uranium/titanium processing" },
+  22: { desc:"A strong, lightweight metal with outstanding corrosion resistance. Titanium is biocompatible with human tissue, making it the metal of choice for surgical implants.", facts:["Titanium is as strong as steel but 45% lighter","The SR-71 Blackbird spy plane was 93% titanium — at its operating speed the airframe heated to 300°C","Because it bonds with bone, titanium dental implants become permanently integrated into the jaw"], rarity:"Common", loc:"Australia (world leader), South Africa, Canada, China, Norway — ilmenite and rutile beach sand deposits" },
+  23: { desc:"A hard, silvery metal used primarily to strengthen steel. Vanadium steel was used in the first Ford Model T, and vanadium redox batteries are emerging as large-scale energy storage.", facts:["Vanadium steel is five times stronger than ordinary steel — it transformed automobile manufacturing in 1908","Vanadium exists in four oxidation states, giving compounds vivid colors: purple, green, blue, and yellow","Vanadium flow batteries can store vast amounts of electricity and recharge nearly indefinitely without capacity loss"], rarity:"Uncommon", loc:"China, Russia, South Africa (Bushveld Complex) — in vanadiferous magnetite, also byproduct of steel production" },
+  24: { desc:"A hard, lustrous metal that resists corrosion by forming a thin, self-healing oxide layer. The name 'chromium' comes from the Greek for color — its compounds span the entire spectrum.", facts:["Chromium makes stainless steel stainless — alloys with 10.5%+ chromium become corrosion-resistant","Ruby's red color comes from traces of chromium(III) in aluminum oxide (corundum)","Chrome plating uses only microns-thick chromium but dramatically increases hardness and reflectivity"], rarity:"Uncommon", loc:"South Africa (world's largest — Bushveld Igneous Complex), Kazakhstan, India, Zimbabwe — chromite" },
+  25: { desc:"A hard, brittle metal essential for steel production. Manganese is the fourth most used metal globally, and without it, steel becomes too brittle for most applications.", facts:["Manganese nodules litter the deep ocean floor — containing manganese, nickel, copper, and cobalt in vast quantities","Manganese is essential for photosynthesis — the enzyme that splits water molecules contains four manganese atoms","The Eiffel Tower contains manganese steel, which was cutting-edge technology in 1889"], rarity:"Common", loc:"South Africa (Kalahari Manganese Field — world's largest), Australia, China, Brazil, Gabon" },
+  26: { desc:"The most abundant heavy element in the universe. Iron is the endpoint of stellar nucleosynthesis — stars fuse elements up to iron, beyond which fusion no longer releases energy.", facts:["The Earth's inner core is a solid ball of iron-nickel alloy about 2,400 km in diameter","Iron deficiency anemia affects over 1.6 billion people worldwide — the most common nutritional deficiency","Cast iron was first produced in China around 500 BC — over 2,000 years before Europe"], rarity:"Abundant", loc:"Australia (Pilbara region — world's largest), Brazil (Carajas), China, Russia — magnetite, hematite" },
+  27: { desc:"A hard, silvery-blue metal with unique magnetic properties at high temperatures. Cobalt is critical for EV batteries and superalloys used in jet engines.", facts:["Cobalt-60 is used in cancer radiation therapy and to sterilize medical equipment","The word 'cobalt' comes from the German 'kobold' (goblin) — miners blamed mysterious blue coloring of copper ore on evil spirits","About 70% of the world's cobalt comes from the Democratic Republic of Congo, raising serious ethical supply chain concerns"], rarity:"Uncommon", loc:"DRC/Congo (70% of world supply), Australia, Philippines, Russia, Cuba — cobaltite, in nickel/copper ores" },
+  28: { desc:"A hard, silvery metal with excellent corrosion resistance. Nickel has been used in coins for over a century and is essential for stainless steel and rechargeable batteries.", facts:["The US five-cent coin (the 'nickel') is actually 75% copper — only 25% nickel","The Sudbury Basin in Ontario was formed by a massive meteor impact ~1.85 billion years ago and contains vast nickel-copper-platinum deposits","Nickel is ferromagnetic — one of only three magnetic metals (with iron and cobalt) at room temperature"], rarity:"Uncommon", loc:"Indonesia, Philippines, Russia (Norilsk), Canada (Sudbury), Australia — pentlandite, laterite deposits" },
+  29: { desc:"The metal of civilization. Copper has been used for 10,000 years — it enabled the Bronze Age and the electrical age alike. Nothing conducts electricity better among common metals.", facts:["Chile produces nearly 28% of the world's copper — the Escondida mine is the largest in the world","Copper is naturally antimicrobial — hospitals are replacing surfaces with copper to reduce pathogen spread","The Statue of Liberty contains 81 tonnes of copper that patinated to its distinctive green verdigris over 140 years"], rarity:"Uncommon", loc:"Chile (Atacama Desert — Escondida, Chuquicamata), Peru, Australia, DRC — chalcopyrite, bornite" },
+  30: { desc:"A blue-white metal essential for galvanizing steel against corrosion. Zinc is biologically critical — it is the second most abundant trace metal in the human body.", facts:["Ancient Romans used zinc compounds for eye conditions without knowing zinc existed as a distinct element","Zinc oxide nanoparticles are used in sunscreen and are biocompatible and photostable","50% of all zinc produced goes to galvanizing — the protective zinc coating on steel fences, pipes, and car bodies"], rarity:"Common", loc:"China, Peru, Australia, USA, India, Mexico — sphalerite (zinc blende, ZnS) in sediment-hosted deposits" },
+  31: { desc:"A soft metal that melts at 29.8°C — it liquefies in your hand. Gallium is a critical material for semiconductors, LEDs, and solar cells.", facts:["Pure gallium expands when it freezes — like water, one of very few substances with this property","Gallium arsenide (GaAs) transistors are used in all mobile phones for their high-frequency performance","Mendeleev predicted gallium's existence and properties precisely from gaps in his periodic table — 4 years before its discovery"], rarity:"Rare", loc:"China (world leader — 80%+), Germany, Ukraine — primarily a byproduct of aluminum and zinc smelting" },
+  32: { desc:"The first semiconductor ever used in electronics. Germanium transistors launched the electronics revolution in the late 1940s, though silicon later surpassed it in most applications.", facts:["The first working transistor (December 1947) was built using germanium at Bell Labs","Germanium fiber optic cables have extremely low light attenuation — essential for long-distance communications","Like gallium, germanium was predicted by Mendeleev ('eka-silicon') before its discovery in 1886"], rarity:"Rare", loc:"China (world leader), Russia, USA, Democratic Republic of Congo — byproduct of zinc smelting and coal fly ash" },
+  33: { desc:"A notoriously toxic metalloid used since antiquity as a poison and pigment. Despite its reputation, arsenic compounds have medical applications including cancer treatment.", facts:["Arsenic trioxide is FDA-approved to treat a specific type of leukemia","Napoleon Bonaparte may have been slowly poisoned by arsenic-tainted wallpaper dye during his St. Helena exile","Victorian-era 'Paris Green' pigment was used to color candy, fabric, and wallpaper — with toxic consequences"], rarity:"Uncommon", loc:"China, Morocco, Russia, Philippines — arsenopyrite, often byproduct of copper and gold smelting" },
+  34: { desc:"A rare nonmetal essential for modern thin-film solar panels and photocopiers. Selenium was historically used to create red and orange glass colors.", facts:["Selenium gives the red color to some traffic lights and brake lights","Just 400 micrograms of selenium per day is beneficial — but 1,000 micrograms can be toxic","The photocopier (xerography) was invented based on selenium's photoconductivity — light exposure changes its electrical resistance"], rarity:"Rare", loc:"China, Japan, Russia, USA, Germany — almost entirely a byproduct of copper electrolytic refining" },
+  35: { desc:"The only non-metallic element that is liquid at room temperature. Bromine is a fuming, reddish-brown liquid with a sharp, unpleasant odor — the name means 'stench' in Greek.", facts:["Bromine compounds were widely used as flame retardants in electronics — now restricted due to environmental concerns","Methyl bromide was used globally as a soil fumigant until it was banned under the Montreal Protocol","The Dead Sea contains about 2 kg of bromine per cubic meter — roughly 300 times seawater concentration"], rarity:"Uncommon", loc:"Dead Sea (Israel/Jordan — world's densest natural bromine brine), USA (Arkansas — deep brine wells), China" },
+  36: { desc:"A heavy, colorless noble gas used in high-performance lasers and specialty lighting. Krypton-85 released by nuclear processing is used to track global nuclear fuel production.", facts:["The International Prototype Metre was defined as 1,650,763.73 wavelengths of krypton-86 orange light","Krypton fluoride (KrF) lasers are used in semiconductor lithography to etch circuit patterns","Krypton-filled bulbs are brighter than argon-filled ones — used in high-performance halogen lamps"], rarity:"Rare", loc:"Atmosphere (1.1 ppm), extracted by fractional distillation of liquefied air" },
+  37: { desc:"A soft, silvery alkali metal so reactive it spontaneously ignites in air. Rubidium atomic clocks are used in GPS satellites, and rubidium compounds glow violet in flame tests.", facts:["Rubidium was discovered in 1861 using the newly invented spectroscope — named for its deep red spectral lines","Rubidium-87 decays slowly to strontium-87 — this is used to date ancient rocks billions of years old","Rubidium condensates cooled to billionths of a degree above absolute zero represent a new state of matter"], rarity:"Uncommon", loc:"Canada (Bernic Lake, Manitoba — pollucite), Zimbabwe, Russia — found in lithium pegmatites" },
+  38: { desc:"A soft, silvery alkaline earth metal. Strontium-90 is a dangerous nuclear fallout product; however, stable strontium compounds are used in flares and fireworks for their vivid crimson color.", facts:["Strontium-90 from nuclear fallout accumulates in bones and was a major Cold War health concern","Strontium ranelate was used as a treatment for osteoporosis — strontium's chemical similarity to calcium allows it to integrate into bone","Fireworks use strontium carbonate or nitrate to produce brilliant red colors"], rarity:"Common", loc:"China (world leader), Spain, Mexico, Morocco, Iran — in celestite (SrSO4) deposits" },
+  39: { desc:"A silvery-white metal used to produce LED phosphors, camera lenses, and high-temperature ceramics. Yttrium was named after Ytterby, Sweden — a village that gave its name to four elements.", facts:["Yttrium-aluminum garnet (YAG) is the crystal used in the most common type of solid-state laser","Yttrium barium copper oxide was the first material to become superconducting above liquid nitrogen temperature","The village of Ytterby, Sweden has more elements named after it than any other place on Earth — Y, Yb, Er, Tb"], rarity:"Uncommon", loc:"China (world leader), USA (Mountain Pass, California), Australia, India — in monazite and bastnäsite ores" },
+  40: { desc:"An extremely corrosion-resistant metal invisible to neutrons, making it ideal for nuclear reactor fuel rod cladding. Zirconium minerals are among the oldest materials on Earth.", facts:["Some zircon crystals from Western Australia are 4.4 billion years old — the oldest known materials on Earth's surface","Zirconium silicate (cubic zirconia) is widely used as a diamond simulant","The Chernobyl disaster was partly caused by failure of zirconium-alloy fuel rod cladding at extremely high temperatures"], rarity:"Common", loc:"Australia (Murray Basin — world's largest), South Africa, China, USA, India — in zircon sand (beach placer deposits)" },
+  41: { desc:"A shiny, gray metal added in small quantities to steel to dramatically increase strength. Brazil dominates the global supply — nearly all niobium comes from a single complex in Minas Gerais.", facts:["Adding just 0.1% niobium to steel increases its yield strength by over 30%","MRI machine superconducting magnets use niobium-titanium alloys cooled to near absolute zero","The Large Hadron Collider at CERN uses over 600 tonnes of niobium-titanium superconducting wire"], rarity:"Uncommon", loc:"Brazil (Araxa — CBMM — 85%+ of world supply), Canada (Niobec mine), Nigeria" },
+  42: { desc:"A hard, silvery metal with the sixth highest melting point of any element. Molybdenum is essential for enzymes in nitrogen fixation — without it, legumes could not convert atmospheric nitrogen.", facts:["Molybdenum disulfide is an excellent solid lubricant used in spacecraft where liquid lubricants would evaporate","Molybdenum steels proved more effective than tungsten steel for gun barrels in World War I","Nitrogenase, the enzyme that converts atmospheric nitrogen to ammonia, contains iron-molybdenum cofactors"], rarity:"Uncommon", loc:"China (world leader — 40%), USA (Climax mine, Colorado), Chile, Peru — molybdenite (MoS2)" },
+  43: { desc:"The first element to be artificially produced. Every technetium atom on Earth today was either made in a nuclear reactor or a particle accelerator — its name means 'artificial' in Greek.", facts:["Technetium-99m is the most widely used radioactive isotope in nuclear medicine — used in over 20 million diagnostic scans annually","It was found in the spectra of certain red giant stars — its presence confirmed that nucleosynthesis is ongoing in stars","All isotopes of technetium are radioactive — the longest-lived has a half-life of 4.2 million years"], rarity:"Synthetic", loc:"Produced in nuclear reactors worldwide; trace amounts exist in uranium ores (spontaneous fission product)" },
+  44: { desc:"A hard, silver-white platinum group metal. Ruthenium is used in hard disk drive coatings and as a catalyst in the ammonia synthesis process — and has emerging applications in quantum computing.", facts:["Ruthenium-108 is proposed as a qubit material for quantum computers due to its long coherence times","A tiny amount of ruthenium (0.1%) added to platinum dramatically increases its hardness and corrosion resistance","Ruthenium tetroxide is so oxidizing it can spontaneously ignite organic materials on contact"], rarity:"Rare", loc:"Russia (Norilsk — world's largest), South Africa (Bushveld), Zimbabwe — in platinum group ore deposits" },
+  45: { desc:"The rarest and most expensive precious metal by mass. Rhodium's primary use is in catalytic converters — it reduces nitrogen oxide emissions from vehicle exhaust.", facts:["The price of rhodium spiked to $29,800 per troy ounce in 2021 — making it far more valuable than gold","About 80% of all rhodium is used in automotive catalytic converters","Rhodium has historically been used to plate white gold jewelry to give it a brilliant, tarnish-resistant shine"], rarity:"Very Rare", loc:"South Africa (80% — Bushveld Igneous Complex), Russia (Norilsk), Zimbabwe — exclusively with platinum-palladium ores" },
+  46: { desc:"A rare platinum group metal critical for catalytic converters. Palladium can absorb up to 900 times its own volume of hydrogen, making it interesting for hydrogen storage research.", facts:["Palladium was named after the asteroid Pallas, discovered 2 years before the element in 1803","Palladium catalysts enable the Heck, Suzuki, and Negishi cross-coupling reactions used to make most modern pharmaceuticals","Russia controls about 40% of global palladium supply, creating significant geopolitical leverage"], rarity:"Rare", loc:"Russia (Norilsk — 40%), South Africa (Bushveld), Canada (Sudbury), USA (Stillwater, Montana)" },
+  47: { desc:"The best electrical and thermal conductor of all metals. Silver has been used as currency for millennia and has the most powerful natural antibacterial properties of any element.", facts:["Sterling silver (92.5% Ag) tarnishes in air due to reaction with sulfur compounds — forming silver sulfide (Ag2S)","NASA uses silver-copper alloys in spacecraft water purification systems","Mexico has been the world's leading silver producer for over 500 years, since Aztec civilizations mined it long before Spanish colonization"], rarity:"Uncommon", loc:"Mexico, Peru, China, Russia, Poland, Australia — argentite, native silver, often with lead/zinc/copper ores" },
+  48: { desc:"A soft, toxic bluish-white metal that accumulates in kidneys and bones. Despite its toxicity, cadmium is essential for nickel-cadmium rechargeable batteries and yellow/red pigments.", facts:["Cadmium-based pigments created the brilliant yellow and red colors in Vincent van Gogh's paintings","The Itai-itai disease in Japan (1950s) was caused by cadmium contamination of rice paddies from zinc mining","Cadmium telluride (CdTe) thin-film solar panels are among the most cost-effective photovoltaic technologies"], rarity:"Uncommon", loc:"China, South Korea, Japan, Kazakhstan, Canada — almost entirely a byproduct of zinc ore smelting" },
+  49: { desc:"A soft, silvery metal that squeaks when bent — 'indium cry'. It is the critical component in indium tin oxide (ITO), the transparent conductor coating every touchscreen and LCD display.", facts:["Every smartphone and tablet screen contains indium tin oxide — critical for touch sensitivity","Indium has an exceptionally low melting point (157°C) and is used in specialty solders and bearings","Global indium supply is entirely dependent on zinc mining — it has no dedicated mines of its own"], rarity:"Rare", loc:"China (world leader — 55%), South Korea, Japan, Canada — exclusively a byproduct of zinc processing" },
+  50: { desc:"One of the oldest metals used by humans. Tin's combination with copper created bronze, launching the Bronze Age civilization approximately 3,500 BCE.", facts:["Tin 'plague' — a phase transformation below 13°C — caused tin buttons to crumble in Napoleonic soldiers' uniforms in the Russian winter","The tin can was invented in 1810 — but the can opener wasn't invented until 50 years later","Pure tin emits a characteristic crackling sound ('tin cry') when bent, caused by crystal deformation"], rarity:"Uncommon", loc:"China (world leader — 40%), Indonesia, Peru, Bolivia, Brazil, Congo — cassiterite (SnO2) deposits" },
+  51: { desc:"A brittle, silver-white metalloid used primarily as a flame retardant and in lead-acid batteries. Antimony compounds were used as cosmetics and medicines in ancient Egypt.", facts:["Antimony trisulfide (stibnite) was ground into kohl, used as eye makeup by ancient Egyptians and Mesopotamians","Antimony-tin oxide is used as a transparent conductive coating, similar to ITO but cheaper","Antimony isotope ratios in ice cores can identify historical smelting events going back to Roman civilization"], rarity:"Uncommon", loc:"China (world leader — 60%), Russia, Bolivia, Tajikistan, Australia — stibnite (Sb2S3)" },
+  52: { desc:"An extremely rare metalloid that looks like silver but is more brittle than glass. Tellurium gives garlic its distinctive smell when inhaled — even in microgram quantities.", facts:["Tellurium is rarer in Earth's crust than platinum, yet used extensively in CdTe solar panels","People exposed to trace tellurium excrete dimethyl telluride through their breath — producing a garlic-like odor for weeks","The first rewritable CDs and DVDs used tellurium alloy phase-change layers"], rarity:"Rare", loc:"China, Japan, USA, Peru, Canada — exclusively a byproduct of copper electrolytic refining (anode slime)" },
+  53: { desc:"A shiny, purple-black solid that sublimates to a gorgeous violet vapor. Iodine is essential for thyroid hormone production — iodine deficiency is the world's most common preventable cause of intellectual disability.", facts:["Iodine was used as the first antiseptic in surgery — introduced by Charles Pravaz in 1828","Potassium iodide tablets are distributed near nuclear plants — iodine-131 from nuclear accidents concentrates in the thyroid","Chile's Atacama Desert holds 60% of the world's iodine reserves in ancient marine sediments"], rarity:"Uncommon", loc:"Chile (Atacama caliche deposits — world leader), Japan (underground brines), USA (Oklahoma brines)" },
+  54: { desc:"The heaviest stable noble gas — about 4.5 times heavier than air. Xenon is used as a propellant for ion thrusters on spacecraft and as a general anesthetic.", facts:["Xenon ion thrusters are used on ESA's SMART-1 lunar spacecraft and NASA's Dawn asteroid probe","Xenon-128 is used as a tracer gas in pulmonary MRI scans — hyperpolarized xenon highlights airway structure in real time","Xenon difluoride was the first noble gas compound ever synthesized, shattering the belief that noble gases could not form bonds"], rarity:"Rare", loc:"Atmosphere (87 ppb), produced by fractional distillation of liquid air (extremely energy intensive)" },
+  55: { desc:"The softest metal and the most electropositive element. Cesium is so reactive it explodes violently on contact with water. Cesium-133 atomic clocks define the SI second.", facts:["The SI second is defined as exactly 9,192,631,770 oscillations of cesium-133 — the basis of all modern timekeeping","Cesium atomic clocks in GPS satellites would lose only 1 second in 300 million years without relativistic corrections","Cesium was discovered in 1860 by Robert Bunsen using spectroscopy — named for its sky-blue spectral lines"], rarity:"Rare", loc:"Canada (Bernic Lake, Manitoba — Tanco Mine, 40% of world supply), Zimbabwe, Namibia" },
+  56: { desc:"A dense, soft alkaline earth metal — its compounds are used in oil well drilling mud to control pressure and prevent blowouts. Barium sulfate is given as a medical 'barium meal' for GI X-rays.", facts:["Barium is toxic — but barium sulfate is so insoluble it passes through the digestive tract harmlessly","'Barium stars' are giant stars with unusually high barium in their spectra — evidence of mass transfer from a companion star","Green fireworks and signals get their color from barium chlorate and nitrate compounds"], rarity:"Common", loc:"China (world leader), India, Morocco, USA, Kazakhstan — barite (BaSO4) deposits, widespread globally" },
+  57: { desc:"The first and most abundant rare earth element. Despite the 'rare' label, lanthanum is more common than tin in Earth's crust — it is just rarely concentrated enough to mine economically.", facts:["Lanthanum oxide is used in high-refractive-index glass for camera and microscope lenses","Misch metal — used in lighter flints — is about 25% lanthanum","Lanthanum nickel (LaNi5) can absorb 400 times its own volume of hydrogen gas"], rarity:"Uncommon", loc:"China (Mountain Pass analog deposits — world leader 60%+), USA (Mountain Pass, California), Australia, India" },
+  58: { desc:"The most abundant rare earth element. Cerium is used in catalytic converters, polishing compounds for glass, and as a component in self-cleaning ovens.", facts:["Cerium oxide is the most effective glass polishing compound known — used to polish telescope mirrors and optical glass","The 'flint' in cigarette lighters is actually ferrocerium — an iron-cerium alloy that showers sparks when scratched","Cerium is named after the dwarf planet Ceres, discovered two years before the element in 1803"], rarity:"Common", loc:"China, USA (Mountain Pass), India, Russia, Brazil — monazite and bastnäsite ore deposits" },
+  59: { desc:"A soft, silvery metal with a bright yellow-green tinge when oxidized. Praseodymium's name means 'green twin' — it was originally thought to be a single element with neodymium.", facts:["Praseodymium-neodymium alloy magnets are used in high-power motors for wind turbines and electric vehicles","Praseodymium oxide creates intense yellow-green glass used in welding goggles for protection","Praseodymium and neodymium were separated in 1885 — 40 years after their mistaken identification as one element"], rarity:"Uncommon", loc:"China (world leader), USA, Australia, India, Brazil — in monazite, bastnäsite, and xenotime deposits" },
+  60: { desc:"The element that powers the modern electrification revolution. Neodymium-iron-boron (NdFeB) magnets are the strongest permanent magnets ever made — essential for EV motors, wind turbines, and earbuds.", facts:["The strongest NdFeB magnets can lift 1,000 times their own weight","A single offshore wind turbine uses up to 2 tonnes of neodymium magnets","China controls over 70% of global neodymium supply — a critical geopolitical commodity"], rarity:"Uncommon", loc:"China (Bayan Obo mine — Inner Mongolia, world's largest REE deposit), USA, Australia, India, Russia" },
+  61: { desc:"The only lanthanide with no stable isotopes — every atom is radioactive. Promethium was the last naturally occurring element to be discovered, named after the Titan who stole fire from the gods.", facts:["Promethium occurs naturally only in trace amounts as a spontaneous fission product of uranium","Before atomic clocks, nuclear promethium batteries powered early missile guidance systems in the Cold War","There is less than 500 grams of promethium naturally present in Earth's entire crust at any given moment"], rarity:"Synthetic", loc:"Produced in nuclear reactors; vanishingly small natural amounts in uranium ores worldwide" },
+  62: { desc:"A hard, silvery rare earth metal with the highest magnetic moment of the lanthanides at room temperature. Samarium-cobalt magnets outperform neodymium magnets in high-temperature environments.", facts:["Samarium-cobalt (SmCo) magnets were the first rare earth permanent magnets — superior to NdFeB at temperatures above 180°C","Samarium-153 is used in targeted cancer radiation therapy, particularly for bone metastases","Samarium is one of the few elements used directly in medicine as a radioactive treatment agent"], rarity:"Uncommon", loc:"China, USA (Mountain Pass), India, Russia, Australia — in monazite and bastnäsite ores" },
+  63: { desc:"The most reactive rare earth element. Europium is the key component in the red phosphors of TV and computer screens — without it, color televisions as we knew them would not exist.", facts:["Europium fluorescence is used as an anti-counterfeiting measure in Euro banknotes — UV light reveals red europium emission","Europium-doped phosphors are used in fluorescent lighting and white LEDs to improve color rendering","Europium was one of the critical bottlenecks in the 1960s color TV revolution — demand nearly outstripped global supply"], rarity:"Rare", loc:"China (dominant), USA, India, Australia — in monazite and bastnäsite; only ~600 tonnes produced annually" },
+  64: { desc:"A silvery-white rare earth metal with remarkable neutron absorption properties. Its MRI-enhancing compounds are used in millions of scans annually.", facts:["Gadolinium contrast agents are injected during MRI scans to highlight tumors and vascular structures","Gadolinium's magnetic moment is so large it magnetizes visibly in a strong magnetic field — useful for magnetic refrigeration research","The gadolinium garnet crystal (GGG) is used as a substrate for magnetic bubble memory devices"], rarity:"Uncommon", loc:"China (world leader), USA, India, Australia — in monazite, bastnäsite deposits" },
+  65: { desc:"A soft, silvery-white rare earth metal. Terbium is critical for green phosphors in screens and solid-state devices — and is increasingly important for high-performance magnets alongside dysprosium.", facts:["Terbium is one of only four elements that is ferromagnetic at room temperature (with Fe, Ni, Co)","Terbium-doped calcium fluoride crystals are used in optical storage and lasers","The magnetostrictive alloy terfenol-D (terbium-iron-dysprosium) changes shape in a magnetic field — used in sonar transducers"], rarity:"Rare", loc:"China (world leader), USA (Mountain Pass), India, Australia — in rare earth ore deposits" },
+  66: { desc:"A silvery-white rare earth metal essential for high-coercivity permanent magnets. Dysprosium additions allow neodymium magnets to maintain strength at high temperatures — critical for EV motors.", facts:["Adding 1-6% dysprosium to NdFeB magnets allows them to operate in environments up to 200°C","Dysprosium-161 is under investigation as a targeted cancer therapy agent","The name comes from the Greek 'dysprositos' meaning hard to get — it was notoriously difficult to isolate in the 19th century"], rarity:"Rare", loc:"China (world leader — Inner Mongolia, Sichuan), USA, Australia — in ion-adsorption clay deposits and hard rock REE ores" },
+  67: { desc:"A soft, silvery-white rare earth metal that has the highest magnetic moment of any element in a magnetic field. Holmium poles are used in NMR magnets to concentrate magnetic flux.", facts:["Holmium has the highest magnetic moment per atom of any naturally occurring element","Holmium lasers are used in medical procedures including kidney stone fragmentation and prostate surgery","Named after Stockholm (Holmia in Latin) — discovered by Swedish chemists in 1879"], rarity:"Rare", loc:"China, USA, India, Australia, Brazil — in monazite and bastnäsite; produced almost exclusively in China" },
+  68: { desc:"A soft, malleable silvery-white metal. Erbium-doped fiber amplifiers are the backbone of the global internet — erbium atoms amplify light signals in fiber optic cables over transcontinental distances.", facts:["Every submarine fiber optic cable spanning the oceans uses erbium-doped fiber amplifiers","Erbium gives rose-tinted glass its characteristic pink color — used in decorative glassware","Erbium YAG lasers are used in dentistry and dermatology — they are strongly absorbed by water in tissue"], rarity:"Rare", loc:"China, USA, India, Australia — in monazite, bastnäsite, and xenotime deposits" },
+  69: { desc:"The rarest stable rare earth element. Thulium has very few commercial applications, but thulium-170 produces X-rays when bombarded with neutrons — used in portable X-ray devices.", facts:["Thulium-based portable X-ray sources have been used in the field without electrical power","Thulium was isolated in 1879 but remained a laboratory curiosity for over 80 years due to extreme rarity","Named after 'Thule' — the ancient name for the far north of Scandinavia"], rarity:"Very Rare", loc:"China, USA, India, Australia — found only in trace concentrations in rare earth ore deposits" },
+  70: { desc:"A soft, silvery rare earth that behaves unusually — it becomes superconducting under pressure. Ytterbium's precise atomic transitions are used in next-generation atomic clocks more accurate than cesium.", facts:["Ytterbium optical lattice clocks lose less than 1 second in 14 billion years — surpassing cesium atomic clocks","Ytterbium lasers are widely used in industrial cutting and welding applications","Along with yttrium, erbium, and terbium, ytterbium is one of four elements named after Ytterby, Sweden"], rarity:"Rare", loc:"China, USA, India, Brazil, Australia — in monazite, bastnäsite, and ion-adsorption clay deposits" },
+  71: { desc:"The last and densest rare earth element. Lutetium is the hardest and highest-melting lanthanide. Its compounds are used in PET scan detectors and as catalysts in oil refining.", facts:["Lutetium oxyorthosilicate (LSO) scintillator crystals are used in modern PET scanners for cancer detection","Lutetium was the last element to be separated from the rare earths — confirmed in 1907 after years of dispute","Lu-DOTATATE (lutetium-177 labeled) is an FDA-approved targeted therapy for neuroendocrine tumors"], rarity:"Rare", loc:"China (dominant), USA, India, Australia — in monazite; among the rarest rare earths commercially" },
+  72: { desc:"Always found alongside zirconium due to similar ionic radii — until 1923 it was not recognized as a distinct element. Hafnium is transparent to neutrons when thin and absorbs them when thick — perfect for reactor control.", facts:["Hafnium was the last stable element to be discovered — predicted by Bohr and found using X-ray spectroscopy of zirconium ore","Intel introduced hafnium oxide as a gate dielectric in microprocessors in 2007 — a major breakthrough after 40 years of silicon dioxide","Hafnium crucibles are used to melt refractory metals that would dissolve steel containers"], rarity:"Rare", loc:"Australia, South Africa, China, USA — separated from zircon sand as a byproduct; always co-located with zirconium" },
+  73: { desc:"A conflict mineral — much of the world's supply comes from Central Africa as 'coltan', mined in conditions linked to armed conflict. Tantalum's biocompatibility makes it ideal for surgical implants.", facts:["A tantalum capacitor sits in virtually every smartphone, computer, and medical device — 60% of tantalum goes to electronics","DRC and Rwanda supply about 40% of world tantalum — coltan mining has been linked to funding armed groups in the Congo conflict","Tantalum was named after Tantalus in Greek mythology — because it stubbornly refused to absorb acid, just as Tantalus could not reach his food"], rarity:"Rare", loc:"DRC (Congo) and Rwanda (40%), Australia (Wodgina mine), Brazil, Canada — columbite-tantalite (coltan) ore" },
+  74: { desc:"The metal with the highest melting point (3,422°C) and highest tensile strength at high temperatures. Tungsten filaments made incandescent light bulbs practical — and tungsten carbide now machines the hardest materials.", facts:["Tungsten's symbol 'W' comes from its German name Wolfram — miners called it wolf's froth because it consumed tin during smelting","Tungsten carbide is nearly as hard as diamond and is used to drill through rock in oil wells and mine shafts","The filament in a traditional incandescent bulb is a tungsten wire thinner than a human hair, operating at 2,500°C"], rarity:"Uncommon", loc:"China (world leader — 80% of global supply), Russia, Canada, Vietnam, Bolivia — wolframite, scheelite deposits" },
+  75: { desc:"One of the rarest stable elements in Earth's crust. Rhenium has the second highest melting point and the highest boiling point of any element. It is critical for single-crystal superalloy turbine blades in jet engines.", facts:["A single-crystal turbine blade in a modern jet engine contains several grams of rhenium and operates above the melting point of most metals","The price of rhenium spiked to $12,000/kg in 2008 due to demand from the aviation industry","The first high-temperature catalyst for petroleum refining used platinum-rhenium alloys"], rarity:"Very Rare", loc:"Chile (byproduct of Escondida copper-molybdenum), USA, Kazakhstan, Russia — almost entirely a byproduct of molybdenite processing" },
+  76: { desc:"The densest naturally occurring element — a cubic centimeter of osmium weighs 22.59 grams. Its extreme hardness means osmium alloys are used in fountain pen tips and scientific instrument pivots.", facts:["Osmium and iridium compete for the title of densest element — the measurement is so difficult both values remain contested","Osmium tetroxide is used to stain biological tissues for electron microscopy — it is also violently toxic","The name comes from Greek 'osme' (smell) — osmium tetroxide has a sharp, acrid odor even in parts-per-billion concentrations"], rarity:"Very Rare", loc:"Russia (Norilsk), South Africa (Bushveld), Zimbabwe — found only in platinum-group ore deposits" },
+  77: { desc:"The second densest element and the most corrosion-resistant metal known. An iridium layer in rock worldwide marks the Cretaceous-Paleogene boundary — evidence of the asteroid that killed the dinosaurs.", facts:["The K-Pg boundary iridium layer is 160 times higher than normal crust — the primary evidence for the asteroid impact hypothesis","Iridium-osmium alloys are used for the tips of compass bearings, scientific instruments, and some pen nibs","The first GPS satellites carried iridium-alloy components — giving the Iridium satellite constellation its name"], rarity:"Very Rare", loc:"South Africa (Bushveld Igneous Complex — world leader), Russia (Norilsk), Zimbabwe, Canada — in PGM deposits" },
+  78: { desc:"A dense, malleable precious metal prized for its catalytic properties and resistance to corrosion. Platinum was considered inferior to silver by pre-Columbian South Americans who called it 'platina' (little silver).", facts:["About 40% of all goods manufactured today are produced using a platinum catalyst at some stage","The original kilogram standard (1889 to 2019) was a cylinder of 90% platinum, 10% iridium kept in Paris","Cisplatin — a platinum compound — is one of the most effective chemotherapy drugs, used to treat testicular, ovarian, and lung cancers"], rarity:"Rare", loc:"South Africa (70% — Bushveld Igneous Complex), Russia (Norilsk — 15%), Zimbabwe, Canada, USA" },
+  79: { desc:"The ultimate store of value across 5,000 years of civilization. Gold's resistance to corrosion, rarity, and lustrous beauty make it uniquely suited for currency and ornamentation.", facts:["All the gold ever mined would fit in a cube about 22 meters on each side","Gold is biocompatible and used in dentistry, arthritis treatment, and as a coating on astronaut visors to filter solar radiation","The largest gold nugget ever found — the 'Welcome Stranger' (1869, Australia) — weighed 72 kg"], rarity:"Rare", loc:"China, Australia (Kalgoorlie), Russia, USA (Nevada — Carlin Trend), Canada, South Africa (Witwatersrand)" },
+  80: { desc:"The only metal that is liquid at room temperature. Mercury's neurotoxicity was not understood for centuries — it poisoned hatmakers (inspiring 'Mad Hatter'), alchemists, and thermometer workers.", facts:["Mercury was used in gold mining for millennia via amalgamation — this process still contaminates river systems in illegal Amazon mining","The planet Mercury is named for the element's rapid movement in a vial — evoking the fleet-footed Roman messenger god","Dental amalgam fillings are 50% mercury and have been used for 160 years — their safety has been confirmed in numerous studies"], rarity:"Uncommon", loc:"China (world leader), Spain (Almaden — historically world's largest mercury mine, now closed), Kyrgyzstan — cinnabar (HgS)" },
+  81: { desc:"A soft, malleable post-transition metal — highly toxic, accumulating in organs and bones. Thallium was once used as a rat poison and to treat ringworm before being banned.", facts:["Thallium poisoning is extremely difficult to detect and was used in several famous murders — earning it the nickname 'the poisoner's poison'","Thallium-201 is used in cardiac stress tests — its uptake by heart muscle can identify reduced blood flow","KRS-5 (thallium bromoiodide) crystals are among the best infrared-transmitting materials known, used in spectroscopy"], rarity:"Rare", loc:"China, Kazakhstan, Russia, Belgium — primarily a byproduct of zinc/lead smelting; trace in pyrite (fool's gold)" },
+  82: { desc:"The heaviest stable element. Lead's high density, malleability, and low cost made it ubiquitous in ancient plumbing, paint, and fuel — with devastating public health consequences now well understood.", facts:["Roman water pipes were made of lead — the Latin 'plumbum' gives us the chemical symbol Pb and the word 'plumber'","Lead-acid batteries, invented in 1859, remain the most widely used rechargeable battery technology due to cost and reliability","Removal of lead from gasoline between 1975 and 2000 correlated with a dramatic drop in violent crime rates in many countries"], rarity:"Common", loc:"China (world leader), Australia (Broken Hill), Peru, Mexico, USA, Russia — galena (PbS) deposits" },
+  83: { desc:"The heaviest element with a stable isotope — bismuth-209 was thought stable until 2003 when it was found radioactive with a half-life of 19×10^18 years. Bismuth is used in medicine as a non-toxic heavy metal substitute.", facts:["Pepto-Bismol contains bismuth subsalicylate — bismuth kills H. pylori bacteria and soothes stomach lining","Bismuth expands slightly when it solidifies (like water) — and forms spectacular hopper crystals with iridescent oxide layers","Bismuth alloys are used in fire suppression systems — the alloy melts at 70°C, releasing water from sprinklers"], rarity:"Uncommon", loc:"China (world leader), Peru, Mexico, Japan, Bolivia — in sulfide ores, often with lead and copper deposits" },
+  84: { desc:"A radioactive element discovered by Marie and Pierre Curie in 1898. Named after Poland (Marie's homeland), polonium is one of the most toxic substances known — a microgram can kill a person.", facts:["The assassination of Alexander Litvinenko in London (2006) used polonium-210 — detectable uniquely because of its intense alpha radiation","Polonium-210 occurs naturally in tobacco — combustion of one pack per day equates to ~300 chest X-rays worth of radiation annually","Marie Curie's notebooks are still too radioactive to handle safely — stored in lead-lined containers in Paris"], rarity:"Very Rare", loc:"Produced in nuclear reactors (Bi-209 neutron bombardment); natural trace amounts in uranium ores and tobacco leaves" },
+  85: { desc:"The rarest naturally occurring element on Earth. At any given moment, the entire planet contains only about 28 grams of astatine — all of it decaying with a maximum half-life of 8.1 hours.", facts:["Only about 0.05 micrograms of astatine have ever been produced artificially","Astatine-211 is highly promising for targeted alpha therapy cancer treatment — it bonds like iodine and delivers a localized killing radiation dose","The name comes from Greek 'astatos' meaning unstable — it has no stable isotopes and can never be accumulated"], rarity:"Extremely Rare", loc:"Trace amounts worldwide in uranium-bearing minerals (natural decay product); produced at cyclotrons in USA, Sweden, Germany, Russia" },
+  86: { desc:"A colorless, radioactive noble gas produced by the natural decay of radium and uranium in the Earth's crust. Radon is the second leading cause of lung cancer in the US after smoking.", facts:["Radon accumulates in poorly ventilated basements — EPA recommends testing all US homes, especially on granite bedrock","Radon-222 has a half-life of only 3.8 days — but its decay products are solids that adhere to lung tissue","Ancient spas in Eastern Europe marketed radon-rich spring water as health tonics — obliviously exposing patrons to radiation"], rarity:"Rare", loc:"Naturally emitted from uranium and thorium-bearing rocks worldwide — especially granite regions (Cornwall UK, Scandinavia, parts of USA)" },
+  87: { desc:"The second rarest naturally occurring element. Francium is so radioactive that all the atoms spontaneously disintegrate within minutes — scientists have never seen a macroscopic sample.", facts:["Only about 20-30 francium atoms exist naturally on Earth at any given instant","Francium was the last element to be discovered in nature — isolated in 1939 by Marguerite Perey, who named it after her homeland","Francium's boiling point (~670°C) has never been measured directly — it is calculated by extrapolation from cesium"], rarity:"Extremely Rare", loc:"Natural decay product in uranium/thorium ores worldwide; produced in tiny amounts at nuclear facilities (TRIUMF Canada, CERN Switzerland)" },
+  88: { desc:"A shining white alkaline earth metal, intensely radioactive. Discovered by the Curies in 1898 — its discovery led directly to the development of nuclear physics and radiation therapy.", facts:["Marie Curie carried a test tube of radium in her pocket and kept a glowing vial on her bedside table — not knowing the danger","Radium-226 was painted on watch dials to make them glow until 1968 — the 'Radium Girls' who painted dials developed devastating radiation cancers","Radium emits a faint blue glow from the ionization of surrounding air molecules"], rarity:"Very Rare", loc:"Trace in uranium ores worldwide — pitchblende (Czech Republic — Joachimsthal), Great Bear Lake (Canada), DRC" },
+  89: { desc:"A soft, highly radioactive metal that glows blue in the dark from its intense radiation ionizing surrounding air. Actinium gives its name to the entire actinide series.", facts:["Actinium-225 is being developed as a targeted alpha therapy agent for prostate cancer and leukemia","Actinium is over 150 times more radioactive than radium — it produces an eerie blue glow visible in complete darkness","There is only about 0.2 mg of actinium in each ton of uranium ore — making natural extraction impractical"], rarity:"Very Rare", loc:"Trace in uranium ores worldwide; produced commercially by neutron irradiation of radium-226 in nuclear reactors" },
+  90: { desc:"A weakly radioactive, silvery metal with energy potential exceeding uranium. Thorium is the most abundant radioactive element in Earth's crust — about three times more abundant than uranium.", facts:["India holds one-third of the world's thorium reserves and is building thorium molten salt reactors for energy independence","The incandescent gas mantles in camping lanterns are made of thorium oxide — the most thermally stable oxide known","Thorium-228 was used as a cancer treatment in the 1950s — with disastrous long-term outcomes not understood at the time"], rarity:"Uncommon", loc:"India (monazite beach sands of Kerala and Tamil Nadu), Brazil, Australia, USA — monazite placer deposits" },
+  91: { desc:"A dense, toxic, and intensely radioactive metal. Protactinium-231 decays to actinium — hence the name. It exists only in uranium ores and is one of the most difficult elements to work with safely.", facts:["The entire world stock of protactinium-231 is about 125 grams, held at the UK's Atomic Energy Authority in Harwell","Protactinium/thorium ratios in ocean sediments are used to reconstruct past ocean circulation patterns","Processing protactinium in bulk requires a nuclear facility — it is so radioactive that normal chemistry is essentially impossible"], rarity:"Very Rare", loc:"Trace in uranium ores worldwide; UK (Harwell — world's largest stock, concentrated from nuclear processing)" },
+  92: { desc:"The heaviest naturally occurring element. Uranium's discovery of fission in 1938 changed history. It is both the fuel for 10% of global electricity and the material for nuclear weapons.", facts:["Uranium glass (Vaseline glass) glows brilliant green under UV light and was fashionable in Victorian tableware — it is only mildly radioactive","The Oklo deposit in Gabon had a natural nuclear reactor operating 1.7 billion years ago","The Athabasca Basin in Saskatchewan, Canada contains uranium ore grades up to 20% — the world's richest deposits"], rarity:"Uncommon", loc:"Kazakhstan (world leader — 40%), Canada (Athabasca Basin), Australia, Namibia, Niger, Russia — uraninite/pitchblende" },
+  93: { desc:"The first transuranic element — beyond uranium in the periodic table. Neptunium was discovered in 1940 by bombarding uranium with neutrons. Named after the next planet beyond Uranus.", facts:["Neptunium-237 has a half-life of 2.14 million years — it accumulates as a byproduct in spent nuclear fuel","Tiny amounts of neptunium occur naturally in uranium ores as a decay product of uranium-238","Neptunium was produced by the first nuclear reactor (Chicago Pile-1) in 1942 as an impurity in plutonium production"], rarity:"Synthetic", loc:"Produced in nuclear reactors worldwide; trace amounts in uranium ores (about 10 parts per billion in pitchblende)" },
+  94: { desc:"Perhaps the most consequential element ever synthesized. Plutonium powers nuclear weapons and deep-space probes — the New Horizons spacecraft that flew past Pluto was powered by plutonium.", facts:["The bomb dropped on Nagasaki contained only 6.2 kg of plutonium — most of which fissioned in about one microsecond","Plutonium-238 is used in radioisotope thermoelectric generators — the Voyager probes still send signals powered by Pu-238 launched in 1977","Plutonium metal has 6 allotropic phases — causing density differences of 25% between forms"], rarity:"Synthetic", loc:"Produced in nuclear reactors worldwide; trace amounts in uranium ores (less than 1 part per trillion)" },
+  95: { desc:"A silvery radioactive metal. Americium-241 is the most commercially distributed radioactive isotope in the world — it is in the ionization chamber of virtually every smoke detector.", facts:["About 0.3 micrograms of americium-241 in a smoke detector alpha-ionizes air — smoke disrupts the ion current triggering the alarm","Americium was secretly produced during the Manhattan Project and declassified in 1945","Americium-241 is recovered from aged plutonium in nuclear weapons stockpiles — Pu-241 decays into Am-241 over decades"], rarity:"Synthetic", loc:"Produced in nuclear reactors worldwide from plutonium; also recovered from nuclear weapons components" },
+  96: { desc:"Named after the Curies — Pierre and Marie — the only couple to have an element named in their honor. Curium is intensely radioactive and thermally hot — it glows red in the dark from its own heat.", facts:["A few grams of curium-244 glow cherry-red in the dark from the heat of its own radioactive decay","Curium was secretly synthesized during the Manhattan Project and not announced until after World War II","The Mars rovers used curium-244 X-ray sources in their Alpha Particle X-Ray Spectrometers to analyze Martian rocks"], rarity:"Synthetic", loc:"Produced in nuclear reactors at Oak Ridge (USA), Mayak (Russia), and other nuclear facilities worldwide" },
+  97: { desc:"Named after the University of California, Berkeley — where it was first synthesized. Berkelium is a radioactive metal produced in milligram quantities — the most ever produced is about a gram.", facts:["Berkelium-249 is the primary target material for synthesizing heavier elements — including tennessine and oganesson","Synthesis of a visible amount of berkelium takes several months in a high-flux nuclear reactor","Berkelium was first synthesized in 1949 using only a few micrograms of material"], rarity:"Synthetic", loc:"Produced exclusively at Oak Ridge National Laboratory (Tennessee, USA) using the High Flux Isotope Reactor" },
+  98: { desc:"Named after California. Californium-252 is the most intense known neutron source — a microgram emits 170 million neutrons per second — used to start nuclear reactors and detect land mines.", facts:["Californium-252 neutron sources have been used to detect land mines in Bosnia and are used routinely in oil well logging","One microgram of californium-252 costs about $27 million — making it one of the most expensive substances on Earth per gram","Californium is produced in such small quantities that its chemistry has largely been studied using single atoms or small clusters"], rarity:"Synthetic", loc:"Produced at Oak Ridge National Laboratory (USA) and the Research Institute of Atomic Reactors (Russia — Dimitrovgrad)" },
+  99: { desc:"Named after Albert Einstein. Einsteinium was discovered in the debris of the first hydrogen bomb test (Ivy Mike, 1952) — classified for years. It is so radioactive that its chemistry is extremely difficult to study.", facts:["Einsteinium was discovered in fallout from the 1952 Ivy Mike hydrogen bomb test at Enewetak Atoll in the Pacific","Only microgram quantities can be produced — severe self-irradiation causes crystals to glow visibly in the dark","In 2021, scientists finally characterized einsteinium's chemistry — studying just 200 nanograms, less than a speck of dust"], rarity:"Synthetic", loc:"Produced in minute quantities at Oak Ridge (USA) and nuclear facilities in Russia and Europe" },
+  100:{ desc:"Named after nuclear physicist Enrico Fermi. Fermium was also discovered in H-bomb fallout — it is the heaviest element that can be formed by nuclear reactions in stars (r-process nucleosynthesis).", facts:["Fermium is the heaviest element that can be created by neutron bombardment — heavier elements require particle accelerators","Fermium-257 has the longest half-life of any fermium isotope at 100.5 days","Less than a microgram of fermium has ever been produced in total by all the world's nuclear facilities"], rarity:"Synthetic", loc:"Produced in nuclear reactors worldwide, primarily at Oak Ridge National Laboratory (USA)" },
+  101:{ desc:"Named after Dmitri Mendeleev — the creator of the periodic table. Mendelevium was the first element produced one atom at a time — synthesized by bombarding einsteinium with helium ions.", facts:["Only about 1 million atoms of mendelevium-256 were synthesized in the original 1955 experiment","Mendelevium-258 has a half-life of 51.5 days — long enough to study its basic chemistry in small quantities","Glenn Seaborg and his team drove through the night to confirm the discovery before announcing it — hiding results due to Cold War secrecy"], rarity:"Synthetic", loc:"Produced in particle accelerators — LBNL (Berkeley, USA), Oak Ridge, Dubna (Russia)" },
+  102:{ desc:"Named after Alfred Nobel, inventor of dynamite and founder of the Nobel Prizes. Nobelium's discovery was disputed between Soviet and American teams during the Cold War — and both got it wrong before Sweden confirmed it.", facts:["The Soviet and American teams both initially made errors in claiming the discovery — confirmed by the Nobel Institute in Sweden in 1957","The Dubna team in Russia was the first to correctly characterize nobelium's chemistry","Nobelium-259 has a half-life of 58 minutes — sufficient to study basic chemical properties"], rarity:"Synthetic", loc:"Produced at JINR (Dubna, Russia), LBNL (Berkeley, USA), and GSI (Darmstadt, Germany)" },
+  103:{ desc:"Named after Ernest Lawrence, inventor of the cyclotron. The last actinide element and the last element in the f-block. Lawrencium's synthesis marked the completion of the actinide series.", facts:["Lawrencium-266 has a half-life of about 11 hours — among the longest for any lawrencium isotope","Lawrencium has one valence electron outside a filled f-shell — making its chemistry resemble the lighter lanthanide lutetium","The discovery was again disputed between American (Berkeley) and Soviet (Dubna) teams during the Cold War"], rarity:"Synthetic", loc:"Produced at LBNL (Berkeley, USA), JINR (Dubna, Russia), and RIKEN (Japan)" },
+  104:{ desc:"The first transactinide element and the first in the 6d transition series. Named after Ernest Rutherford, who discovered the atomic nucleus.", facts:["The synthesis of rutherfordium opened the 'superheavy element' era — elements so massive their chemistry challenges quantum theory","Rutherfordium was the subject of intense Cold War priority disputes — the US named it rutherfordium, the Soviets called it kurchatovium","Relativistic quantum effects make rutherfordium behave like hafnium chemically — the first confirmation of relativistic chemistry"], rarity:"Synthetic", loc:"Produced at JINR (Dubna, Russia) and LBNL (Berkeley, USA) by bombarding californium-249 or curium with light ions" },
+  105:{ desc:"Named after Dubna, Russia, where it was discovered. Dubnium is a transactinide superheavy metal that exists for only seconds. Its chemistry is studied one atom at a time using ingenious microfluidic techniques.", facts:["A single experiment determining dubnium's chemistry may take weeks of reactor time to produce just a few hundred atoms","Dubnium's chemistry mirrors niobium and tantalum as predicted by the periodic table — confirming its placement","The element's other proposed name, hahnium (after Otto Hahn), was officially withdrawn in 1997 by IUPAC"], rarity:"Synthetic", loc:"Produced at JINR (Dubna, Russia), GSI (Darmstadt, Germany), and LBNL (Berkeley, USA)" },
+  106:{ desc:"Named after Glenn T. Seaborg — the only person to have a chemical element named after them while still alive. Seaborgium's chemistry was studied in 1997 with just seven atoms, confirming it behaves like tungsten.", facts:["Glenn Seaborg co-discovered 10 transuranic elements — more than any other scientist in history","A 1997 experiment studied seaborgium's chemistry using 7 atoms over 3 weeks, comparing behavior to molybdenum and tungsten","Seaborgium's longest-lived isotope has a half-life of 14 minutes — extremely short for chemistry experiments"], rarity:"Synthetic", loc:"Produced at LBNL (Berkeley, USA), GSI (Darmstadt, Germany), and FLNR (Dubna, Russia)" },
+  107:{ desc:"Named after Niels Bohr, father of quantum atomic theory. Bohrium was first synthesized in 1981 and exists for only seconds. Its chemical behavior has been inferred but not directly studied.", facts:["Bohrium-270 has a half-life of only 61 seconds — the longest known for any bohrium isotope","The synthesis of one atom of bohrium takes bombarding billions of bismuth nuclei with chromium ions","Bohrium is predicted to behave like rhenium — sitting directly below it in Group 7 of the periodic table"], rarity:"Synthetic", loc:"Produced at GSI (Darmstadt, Germany), JINR (Dubna, Russia), and RIKEN (Japan)" },
+  108:{ desc:"Named after Hesse (Hassia in Latin), the German state containing Darmstadt's GSI laboratory. Hassium is one of the few superheavy elements whose chemistry has been experimentally studied.", facts:["In 2002, hassium's chemistry was studied using just 6 atoms — confirming it forms a volatile tetroxide like osmium","Hassium tetroxide was the first compound of a superheavy element studied using gas chromatography","Hassium-269 has a half-life of about 16 seconds — long enough for rudimentary chemical experiments"], rarity:"Synthetic", loc:"Produced exclusively at GSI (Darmstadt, Germany) by bombarding lead-208 with iron-58" },
+  109:{ desc:"Named after physicist Lise Meitner, who discovered nuclear fission alongside Otto Hahn but was controversially excluded from the Nobel Prize. Meitnerium exists for only milliseconds.", facts:["Lise Meitner was nominated for the Nobel Prize 48 times without winning — meitnerium helps correct this historical injustice","Meitnerium-278 has a half-life of about 7.6 seconds — the longest known isotope","Meitnerium's chemistry has never been studied — it decays too rapidly for any chemical investigation"], rarity:"Synthetic", loc:"Produced at GSI (Darmstadt, Germany) using heavy ion bombardment of bismuth targets" },
+  110:{ desc:"Named after Darmstadt, Germany — where it was first synthesized in 1994. Darmstadtium exists for milliseconds and no chemical properties have been measured — only predicted from relativistic quantum calculations.", facts:["Darmstadtium-281 has a half-life of about 12.7 seconds — the longest known","Theoretical calculations suggest darmstadtium should be a noble metal similar to platinum, sitting below it in the table","Darmstadtium was produced in a pioneering experiment that created only a few atoms over several weeks"], rarity:"Synthetic", loc:"Produced at GSI (Darmstadt, Germany), RIKEN (Japan), and JINR (Dubna, Russia)" },
+  111:{ desc:"Named after Wilhelm Rontgen, discoverer of X-rays. Roentgenium was first synthesized in 1994 at GSI Darmstadt. Its chemistry is entirely theoretical — only a few atoms have ever been created.", facts:["Wilhelm Rontgen was the first Nobel laureate in physics (1901) for discovering X-rays in 1895","Roentgenium-282 has a half-life of about 100 seconds — enough for future chemical study in principle","Relativistic effects in roentgenium are so strong its 6d electrons begin to behave like core electrons"], rarity:"Synthetic", loc:"Produced at GSI (Darmstadt, Germany) and confirmed at RIKEN (Japan) and JINR (Dubna, Russia)" },
+  112:{ desc:"Named after Nicolaus Copernicus. Copernicium was created in 1996. Relativistic effects are so extreme that copernicium is predicted to be a gas or volatile liquid at room temperature.", facts:["Copernicium is predicted to behave like a noble gas due to extreme relativistic stabilization of its 7s electrons","Copernicium-285 has a half-life of 29 seconds — the longest known for any copernicium isotope","The name was accepted by IUPAC on Copernicus' 537th birthday, February 19, 2010"], rarity:"Synthetic", loc:"Produced at GSI (Darmstadt, Germany); synthesis confirmed at RIKEN (Japan) and FLNR (Dubna, Russia)" },
+  113:{ desc:"Named after Japan (Nihon). Nihonium is the first element discovered in Asia and the first to be named by an Asian research institution. The RIKEN team spent 9 years making just 3 atoms.", facts:["RIKEN's synthesis was confirmed after bombarding zinc-70 onto bismuth-209 for 553 days spread over 9 years","Japan received IUPAC naming rights in 2016 — the first Asian country to discover and name a chemical element","Nihonium-286 has a half-life of about 9.5 seconds — decay chains are used to confirm synthesis"], rarity:"Synthetic", loc:"Discovered and produced at RIKEN (Wako, Saitama, Japan)" },
+  114:{ desc:"Named after the Flerov Laboratory of Nuclear Reactions in Dubna, Russia — where it was synthesized. Flerovium is predicted to be an extremely dense, short-lived metal with anomalous relativistic behavior.", facts:["Flerovium was first synthesized in 1999 in a collaboration between Dubna and Lawrence Livermore National Laboratory","The 'island of stability' theory predicts nuclei near Z=114, N=184 might have longer half-lives — flerovium isotopes are approaching this region","Flerovium-289 has a half-life of about 2.6 seconds — short, but enough to study in future experiments"], rarity:"Synthetic", loc:"Produced at JINR (Dubna, Russia) in collaboration with Lawrence Livermore National Laboratory (USA)" },
+  115:{ desc:"Named after Moscow Oblast, Russia. Moscovium was first synthesized in 2003. It sits below bismuth in the periodic table and is predicted to be a semi-metallic solid with limited stability.", facts:["Moscovium was briefly the subject of a conspiracy theory claiming it was the element responsible for UFO propulsion systems — completely unfounded","Moscovium-290 has a half-life of about 0.65 seconds — one of the shortest for elements with confirmed chemistry predictions","The synthesis uses calcium-48 ions bombarding americium-243 targets"], rarity:"Synthetic", loc:"Produced at JINR (Dubna, Russia) in collaboration with Oak Ridge National Laboratory (USA)" },
+  116:{ desc:"Named after Lawrence Livermore National Laboratory in Livermore, California. Livermorium sits below polonium in the periodic table — and like polonium is expected to be a solid metal, but with a half-life of milliseconds.", facts:["Livermorium was first synthesized in 2000 in a Dubna-Livermore collaboration that has produced many of the heaviest elements","The synthesis requires curium-248 targets irradiated with calcium-48 ions — a single experiment can take months","Livermorium-293 has a half-life of about 60 milliseconds — among the more stable superheavy isotopes"], rarity:"Synthetic", loc:"Produced at JINR (Dubna, Russia) in collaboration with Lawrence Livermore National Laboratory (USA)" },
+  117:{ desc:"Named after Tennessee, home of Oak Ridge National Laboratory — which provided the crucial californium-249 and berkelium-249 targets. Tennessine sits below astatine and is the second heaviest halogen.", facts:["Tennessine required berkelium targets that took 250 days to produce at Oak Ridge's High Flux Isotope Reactor","The synthesis was confirmed in 2010 in a joint Russia-USA experiment at JINR Dubna","Tennessine-294 has a half-life of 51 milliseconds — longer than predicted, offering a hint of the 'island of stability'"], rarity:"Synthetic", loc:"Produced at JINR (Dubna, Russia) using targets from Oak Ridge National Laboratory and Vanderbilt University (USA)" },
+  118:{ desc:"The heaviest element ever confirmed. Named after Yuri Oganessian, the world's leading superheavy element physicist — the first living person honored with an element name (alongside Seaborg). Only 5 atoms have ever been created.", facts:["Oganesson is the only synthetic noble gas — but relativistic effects are so strong it is predicted to be a solid at room temperature","The 5 confirmed atoms of oganesson decay in under 1 millisecond — chemistry is currently impossible","Oganesson has the highest atomic number and mass of any confirmed element — and likely the highest that will ever be named"], rarity:"Synthetic", loc:"Produced exclusively at JINR (Dubna, Russia) by bombarding californium-249 with calcium-48 ions; only 5 atoms ever created" },
+};
+
+const JANET_POS = {
+  1:[1,31],
+  2:[1,32],
+  3:[2,31],
+  4:[2,32],
+  5:[2,25],
+  6:[2,26],
+  7:[2,27],
+  8:[2,28],
+  9:[2,29],
+  10:[2,30],
+  11:[3,31],
+  12:[3,32],
+  13:[3,25],
+  14:[3,26],
+  15:[3,27],
+  16:[3,28],
+  17:[3,29],
+  18:[3,30],
+  19:[4,31],
+  20:[4,32],
+  21:[4,15],
+  22:[4,16],
+  23:[4,17],
+  24:[4,18],
+  25:[4,19],
+  26:[4,20],
+  27:[4,21],
+  28:[4,22],
+  29:[4,23],
+  30:[4,24],
+  31:[4,25],
+  32:[4,26],
+  33:[4,27],
+  34:[4,28],
+  35:[4,29],
+  36:[4,30],
+  37:[5,31],
+  38:[5,32],
+  39:[5,15],
+  40:[5,16],
+  41:[5,17],
+  42:[5,18],
+  43:[5,19],
+  44:[5,20],
+  45:[5,21],
+  46:[5,22],
+  47:[5,23],
+  48:[5,24],
+  49:[5,25],
+  50:[5,26],
+  51:[5,27],
+  52:[5,28],
+  53:[5,29],
+  54:[5,30],
+  55:[6,31],
+  56:[6,32],
+  57:[6,1],
+  58:[6,2],
+  59:[6,3],
+  60:[6,4],
+  61:[6,5],
+  62:[6,6],
+  63:[6,7],
+  64:[6,8],
+  65:[6,9],
+  66:[6,10],
+  67:[6,11],
+  68:[6,12],
+  69:[6,13],
+  70:[6,14],
+  71:[6,15],
+  72:[6,16],
+  73:[6,17],
+  74:[6,18],
+  75:[6,19],
+  76:[6,20],
+  77:[6,21],
+  78:[6,22],
+  79:[6,23],
+  80:[6,24],
+  81:[6,25],
+  82:[6,26],
+  83:[6,27],
+  84:[6,28],
+  85:[6,29],
+  86:[6,30],
+  87:[7,31],
+  88:[7,32],
+  89:[7,1],
+  90:[7,2],
+  91:[7,3],
+  92:[7,4],
+  93:[7,5],
+  94:[7,6],
+  95:[7,7],
+  96:[7,8],
+  97:[7,9],
+  98:[7,10],
+  99:[7,11],
+  100:[7,12],
+  101:[7,13],
+  102:[7,14],
+  103:[7,15],
+  104:[7,16],
+  105:[7,17],
+  106:[7,18],
+  107:[7,19],
+  108:[7,20],
+  109:[7,21],
+  110:[7,22],
+  111:[7,23],
+  112:[7,24],
+  113:[7,25],
+  114:[7,26],
+  115:[7,27],
+  116:[7,28],
+  117:[7,29],
+  118:[7,30],
+};
+
+const EN_DATA = {
+  1:2.2,
+  2:null,
+  3:0.98,
+  4:1.57,
+  5:2.04,
+  6:2.55,
+  7:3.04,
+  8:3.44,
+  9:3.98,
+  10:null,
+  11:0.93,
+  12:1.31,
+  13:1.61,
+  14:1.9,
+  15:2.19,
+  16:2.58,
+  17:3.16,
+  18:null,
+  19:0.82,
+  20:1.0,
+  21:1.36,
+  22:1.54,
+  23:1.63,
+  24:1.66,
+  25:1.55,
+  26:1.83,
+  27:1.88,
+  28:1.91,
+  29:1.9,
+  30:1.65,
+  31:1.81,
+  32:2.01,
+  33:2.18,
+  34:2.55,
+  35:2.96,
+  36:3.0,
+  37:0.82,
+  38:0.95,
+  39:1.22,
+  40:1.33,
+  41:1.6,
+  42:2.16,
+  43:1.9,
+  44:2.2,
+  45:2.28,
+  46:2.2,
+  47:1.93,
+  48:1.69,
+  49:1.78,
+  50:1.96,
+  51:2.05,
+  52:2.1,
+  53:2.66,
+  54:2.6,
+  55:0.79,
+  56:0.89,
+  57:1.1,
+  58:1.12,
+  59:1.13,
+  60:1.14,
+  61:1.13,
+  62:1.17,
+  63:1.2,
+  64:1.2,
+  65:1.1,
+  66:1.22,
+  67:1.23,
+  68:1.24,
+  69:1.25,
+  70:1.1,
+  71:1.27,
+  72:1.3,
+  73:1.5,
+  74:2.36,
+  75:1.9,
+  76:2.2,
+  77:2.2,
+  78:2.28,
+  79:2.54,
+  80:2.0,
+  81:1.62,
+  82:2.33,
+  83:2.02,
+  84:2.0,
+  85:2.2,
+  86:null,
+  87:0.7,
+  88:0.9,
+  89:1.1,
+  90:1.3,
+  91:1.5,
+  92:1.38,
+  93:1.36,
+  94:1.28,
+  95:1.3,
+  96:1.3,
+  97:1.3,
+  98:1.3,
+  99:1.3,
+  100:1.3,
+  101:1.3,
+  102:1.3,
+  103:1.3,
+  104:null,
+  105:null,
+  106:null,
+  107:null,
+  108:null,
+  109:null,
+  110:null,
+  111:null,
+  112:null,
+  113:null,
+  114:null,
+  115:null,
+  116:null,
+  117:null,
+  118:null,
+};
+
+const ORIGIN = {
+  1:0,
+  2:0,
+  3:1,
+  4:1,
+  5:1,
+  6:2,
+  7:2,
+  8:2,
+  9:2,
+  10:2,
+  11:2,
+  12:2,
+  13:2,
+  14:2,
+  15:2,
+  16:2,
+  17:2,
+  18:2,
+  19:2,
+  20:2,
+  21:2,
+  22:2,
+  23:2,
+  24:2,
+  25:2,
+  26:2,
+  27:2,
+  28:2,
+  29:3,
+  30:3,
+  31:3,
+  32:3,
+  33:3,
+  34:3,
+  35:3,
+  36:3,
+  37:3,
+  38:3,
+  39:3,
+  40:3,
+  41:3,
+  42:3,
+  43:6,
+  44:3,
+  45:3,
+  46:3,
+  47:3,
+  48:3,
+  49:3,
+  50:3,
+  51:3,
+  52:3,
+  53:3,
+  54:3,
+  55:3,
+  56:3,
+  57:3,
+  58:3,
+  59:3,
+  60:3,
+  61:6,
+  62:3,
+  63:4,
+  64:4,
+  65:4,
+  66:4,
+  67:4,
+  68:4,
+  69:4,
+  70:4,
+  71:4,
+  72:4,
+  73:4,
+  74:4,
+  75:4,
+  76:4,
+  77:4,
+  78:4,
+  79:4,
+  80:4,
+  81:4,
+  82:4,
+  83:4,
+  84:5,
+  85:5,
+  86:5,
+  87:5,
+  88:5,
+  89:5,
+  90:4,
+  91:5,
+  92:4,
+  93:6,
+  94:6,
+  95:6,
+  96:6,
+  97:6,
+  98:6,
+  99:6,
+  100:6,
+  101:6,
+  102:6,
+  103:6,
+  104:6,
+  105:6,
+  106:6,
+  107:6,
+  108:6,
+  109:6,
+  110:6,
+  111:6,
+  112:6,
+  113:6,
+  114:6,
+  115:6,
+  116:6,
+  117:6,
+  118:6,
+};
+
+const ORIGIN_INFO = [
+  { id:0, l:"Big Bang",          c:"#F59E0B", d:"Hydrogen and helium formed within minutes of the Big Bang" },
+  { id:1, l:"Cosmic Ray Fusion", c:"#06B6D4", d:"Formed when cosmic rays collide with interstellar atoms, fragmenting heavier nuclei" },
+  { id:2, l:"Stellar Fusion",    c:"#F97316", d:"Forged inside stars through nuclear fusion in stellar cores and shells" },
+  { id:3, l:"s-Process",         c:"#8B5CF6", d:"Slow neutron capture in aging red giant and AGB stars" },
+  { id:4, l:"r-Process",         c:"#EC4899", d:"Rapid neutron capture in neutron star collisions and supernovae" },
+  { id:5, l:"Radioactive Decay", c:"#10B981", d:"Produced by decay of heavier unstable elements" },
+  { id:6, l:"Artificial",        c:"#94A3B8", d:"Created only in nuclear reactors or particle accelerators" },
+];
+
+const STATES = {
+  1:'gas',
+  2:'gas',
+  3:'solid',
+  4:'solid',
+  5:'solid',
+  6:'solid',
+  7:'gas',
+  8:'gas',
+  9:'gas',
+  10:'gas',
+  11:'solid',
+  12:'solid',
+  13:'solid',
+  14:'solid',
+  15:'solid',
+  16:'solid',
+  17:'gas',
+  18:'gas',
+  19:'solid',
+  20:'solid',
+  21:'solid',
+  22:'solid',
+  23:'solid',
+  24:'solid',
+  25:'solid',
+  26:'solid',
+  27:'solid',
+  28:'solid',
+  29:'solid',
+  30:'solid',
+  31:'solid',
+  32:'solid',
+  33:'solid',
+  34:'solid',
+  35:'liquid',
+  36:'gas',
+  37:'solid',
+  38:'solid',
+  39:'solid',
+  40:'solid',
+  41:'solid',
+  42:'solid',
+  43:'solid',
+  44:'solid',
+  45:'solid',
+  46:'solid',
+  47:'solid',
+  48:'solid',
+  49:'solid',
+  50:'solid',
+  51:'solid',
+  52:'solid',
+  53:'solid',
+  54:'gas',
+  55:'solid',
+  56:'solid',
+  57:'solid',
+  58:'solid',
+  59:'solid',
+  60:'solid',
+  61:'solid',
+  62:'solid',
+  63:'solid',
+  64:'solid',
+  65:'solid',
+  66:'solid',
+  67:'solid',
+  68:'solid',
+  69:'solid',
+  70:'solid',
+  71:'solid',
+  72:'solid',
+  73:'solid',
+  74:'solid',
+  75:'solid',
+  76:'solid',
+  77:'solid',
+  78:'solid',
+  79:'solid',
+  80:'liquid',
+  81:'solid',
+  82:'solid',
+  83:'solid',
+  84:'solid',
+  85:'solid',
+  86:'gas',
+  87:'solid',
+  88:'solid',
+  89:'solid',
+  90:'solid',
+  91:'solid',
+  92:'solid',
+  93:'solid',
+  94:'solid',
+  95:'solid',
+  96:'solid',
+  97:'solid',
+  98:'solid',
+  99:'solid',
+  100:'solid',
+  101:'unknown',
+  102:'unknown',
+  103:'unknown',
+  104:'unknown',
+  105:'unknown',
+  106:'unknown',
+  107:'unknown',
+  108:'unknown',
+  109:'unknown',
+  110:'unknown',
+  111:'unknown',
+  112:'unknown',
+  113:'unknown',
+  114:'unknown',
+  115:'unknown',
+  116:'unknown',
+  117:'unknown',
+  118:'unknown',
+};
+
+const SYNTHETIC = new Set([43,61,93,94,95,96,97,98,99,100,101,102,103,104,105,106,107,108,109,110,111,112,113,114,115,116,117,118]);
+
+
+const SHL = ["K","L","M","N","O","P","Q"];
+
+const EL = [
+  [1,"H","Hydrogen","nonmetal",[1],1.008,1,1],
+  [2,"He","Helium","noble-gas",[2],4.003,1,18],
+  [3,"Li","Lithium","alkali-metal",[2,1],6.941,2,1],
+  [4,"Be","Beryllium","alkaline-earth",[2,2],9.012,2,2],
+  [5,"B","Boron","metalloid",[2,3],10.81,2,13],
+  [6,"C","Carbon","nonmetal",[2,4],12.011,2,14],
+  [7,"N","Nitrogen","nonmetal",[2,5],14.007,2,15],
+  [8,"O","Oxygen","nonmetal",[2,6],15.999,2,16],
+  [9,"F","Fluorine","halogen",[2,7],18.998,2,17],
+  [10,"Ne","Neon","noble-gas",[2,8],20.18,2,18],
+  [11,"Na","Sodium","alkali-metal",[2,8,1],22.990,3,1],
+  [12,"Mg","Magnesium","alkaline-earth",[2,8,2],24.305,3,2],
+  [13,"Al","Aluminum","post-transition",[2,8,3],26.982,3,13],
+  [14,"Si","Silicon","metalloid",[2,8,4],28.086,3,14],
+  [15,"P","Phosphorus","nonmetal",[2,8,5],30.974,3,15],
+  [16,"S","Sulfur","nonmetal",[2,8,6],32.06,3,16],
+  [17,"Cl","Chlorine","halogen",[2,8,7],35.45,3,17],
+  [18,"Ar","Argon","noble-gas",[2,8,8],39.948,3,18],
+  [19,"K","Potassium","alkali-metal",[2,8,8,1],39.098,4,1],
+  [20,"Ca","Calcium","alkaline-earth",[2,8,8,2],40.078,4,2],
+  [21,"Sc","Scandium","transition-metal",[2,8,9,2],44.956,4,3],
+  [22,"Ti","Titanium","transition-metal",[2,8,10,2],47.867,4,4],
+  [23,"V","Vanadium","transition-metal",[2,8,11,2],50.942,4,5],
+  [24,"Cr","Chromium","transition-metal",[2,8,13,1],51.996,4,6],
+  [25,"Mn","Manganese","transition-metal",[2,8,13,2],54.938,4,7],
+  [26,"Fe","Iron","transition-metal",[2,8,14,2],55.845,4,8],
+  [27,"Co","Cobalt","transition-metal",[2,8,15,2],58.933,4,9],
+  [28,"Ni","Nickel","transition-metal",[2,8,16,2],58.693,4,10],
+  [29,"Cu","Copper","transition-metal",[2,8,18,1],63.546,4,11],
+  [30,"Zn","Zinc","transition-metal",[2,8,18,2],65.38,4,12],
+  [31,"Ga","Gallium","post-transition",[2,8,18,3],69.723,4,13],
+  [32,"Ge","Germanium","metalloid",[2,8,18,4],72.63,4,14],
+  [33,"As","Arsenic","metalloid",[2,8,18,5],74.922,4,15],
+  [34,"Se","Selenium","nonmetal",[2,8,18,6],78.971,4,16],
+  [35,"Br","Bromine","halogen",[2,8,18,7],79.904,4,17],
+  [36,"Kr","Krypton","noble-gas",[2,8,18,8],83.798,4,18],
+  [37,"Rb","Rubidium","alkali-metal",[2,8,18,8,1],85.468,5,1],
+  [38,"Sr","Strontium","alkaline-earth",[2,8,18,8,2],87.62,5,2],
+  [39,"Y","Yttrium","transition-metal",[2,8,18,9,2],88.906,5,3],
+  [40,"Zr","Zirconium","transition-metal",[2,8,18,10,2],91.224,5,4],
+  [41,"Nb","Niobium","transition-metal",[2,8,18,12,1],92.906,5,5],
+  [42,"Mo","Molybdenum","transition-metal",[2,8,18,13,1],95.96,5,6],
+  [43,"Tc","Technetium","transition-metal",[2,8,18,13,2],98,5,7],
+  [44,"Ru","Ruthenium","transition-metal",[2,8,18,15,1],101.07,5,8],
+  [45,"Rh","Rhodium","transition-metal",[2,8,18,16,1],102.906,5,9],
+  [46,"Pd","Palladium","transition-metal",[2,8,18,18],106.42,5,10],
+  [47,"Ag","Silver","transition-metal",[2,8,18,18,1],107.868,5,11],
+  [48,"Cd","Cadmium","transition-metal",[2,8,18,18,2],112.414,5,12],
+  [49,"In","Indium","post-transition",[2,8,18,18,3],114.818,5,13],
+  [50,"Sn","Tin","post-transition",[2,8,18,18,4],118.71,5,14],
+  [51,"Sb","Antimony","metalloid",[2,8,18,18,5],121.76,5,15],
+  [52,"Te","Tellurium","metalloid",[2,8,18,18,6],127.6,5,16],
+  [53,"I","Iodine","halogen",[2,8,18,18,7],126.904,5,17],
+  [54,"Xe","Xenon","noble-gas",[2,8,18,18,8],131.293,5,18],
+  [55,"Cs","Cesium","alkali-metal",[2,8,18,18,8,1],132.905,6,1],
+  [56,"Ba","Barium","alkaline-earth",[2,8,18,18,8,2],137.327,6,2],
+  [57,"La","Lanthanum","lanthanide",[2,8,18,18,9,2],138.905,8,3],
+  [58,"Ce","Cerium","lanthanide",[2,8,18,19,9,2],140.116,8,4],
+  [59,"Pr","Praseodymium","lanthanide",[2,8,18,21,8,2],140.908,8,5],
+  [60,"Nd","Neodymium","lanthanide",[2,8,18,22,8,2],144.242,8,6],
+  [61,"Pm","Promethium","lanthanide",[2,8,18,23,8,2],145,8,7],
+  [62,"Sm","Samarium","lanthanide",[2,8,18,24,8,2],150.36,8,8],
+  [63,"Eu","Europium","lanthanide",[2,8,18,25,8,2],151.964,8,9],
+  [64,"Gd","Gadolinium","lanthanide",[2,8,18,25,9,2],157.25,8,10],
+  [65,"Tb","Terbium","lanthanide",[2,8,18,27,8,2],158.925,8,11],
+  [66,"Dy","Dysprosium","lanthanide",[2,8,18,28,8,2],162.5,8,12],
+  [67,"Ho","Holmium","lanthanide",[2,8,18,29,8,2],164.93,8,13],
+  [68,"Er","Erbium","lanthanide",[2,8,18,30,8,2],167.259,8,14],
+  [69,"Tm","Thulium","lanthanide",[2,8,18,31,8,2],168.934,8,15],
+  [70,"Yb","Ytterbium","lanthanide",[2,8,18,32,8,2],173.045,8,16],
+  [71,"Lu","Lutetium","lanthanide",[2,8,18,32,9,2],174.967,8,17],
+  [72,"Hf","Hafnium","transition-metal",[2,8,18,32,10,2],178.49,6,4],
+  [73,"Ta","Tantalum","transition-metal",[2,8,18,32,11,2],180.948,6,5],
+  [74,"W","Tungsten","transition-metal",[2,8,18,32,12,2],183.84,6,6],
+  [75,"Re","Rhenium","transition-metal",[2,8,18,32,13,2],186.207,6,7],
+  [76,"Os","Osmium","transition-metal",[2,8,18,32,14,2],190.23,6,8],
+  [77,"Ir","Iridium","transition-metal",[2,8,18,32,15,2],192.217,6,9],
+  [78,"Pt","Platinum","transition-metal",[2,8,18,32,17,1],195.084,6,10],
+  [79,"Au","Gold","transition-metal",[2,8,18,32,18,1],196.967,6,11],
+  [80,"Hg","Mercury","transition-metal",[2,8,18,32,18,2],200.592,6,12],
+  [81,"Tl","Thallium","post-transition",[2,8,18,32,18,3],204.38,6,13],
+  [82,"Pb","Lead","post-transition",[2,8,18,32,18,4],207.2,6,14],
+  [83,"Bi","Bismuth","post-transition",[2,8,18,32,18,5],208.98,6,15],
+  [84,"Po","Polonium","post-transition",[2,8,18,32,18,6],209,6,16],
+  [85,"At","Astatine","halogen",[2,8,18,32,18,7],210,6,17],
+  [86,"Rn","Radon","noble-gas",[2,8,18,32,18,8],222,6,18],
+  [87,"Fr","Francium","alkali-metal",[2,8,18,32,18,8,1],223,7,1],
+  [88,"Ra","Radium","alkaline-earth",[2,8,18,32,18,8,2],226,7,2],
+  [89,"Ac","Actinium","actinide",[2,8,18,32,18,9,2],227,9,3],
+  [90,"Th","Thorium","actinide",[2,8,18,32,18,10,2],232.038,9,4],
+  [91,"Pa","Protactinium","actinide",[2,8,18,32,20,9,2],231.036,9,5],
+  [92,"U","Uranium","actinide",[2,8,18,32,21,9,2],238.029,9,6],
+  [93,"Np","Neptunium","actinide",[2,8,18,32,22,9,2],237,9,7],
+  [94,"Pu","Plutonium","actinide",[2,8,18,32,24,8,2],244,9,8],
+  [95,"Am","Americium","actinide",[2,8,18,32,25,8,2],243,9,9],
+  [96,"Cm","Curium","actinide",[2,8,18,32,25,9,2],247,9,10],
+  [97,"Bk","Berkelium","actinide",[2,8,18,32,27,8,2],247,9,11],
+  [98,"Cf","Californium","actinide",[2,8,18,32,28,8,2],251,9,12],
+  [99,"Es","Einsteinium","actinide",[2,8,18,32,29,8,2],252,9,13],
+  [100,"Fm","Fermium","actinide",[2,8,18,32,30,8,2],257,9,14],
+  [101,"Md","Mendelevium","actinide",[2,8,18,32,31,8,2],258,9,15],
+  [102,"No","Nobelium","actinide",[2,8,18,32,32,8,2],259,9,16],
+  [103,"Lr","Lawrencium","actinide",[2,8,18,32,32,8,3],266,9,17],
+  [104,"Rf","Rutherfordium","transition-metal",[2,8,18,32,32,10,2],267,7,4],
+  [105,"Db","Dubnium","transition-metal",[2,8,18,32,32,11,2],270,7,5],
+  [106,"Sg","Seaborgium","transition-metal",[2,8,18,32,32,12,2],271,7,6],
+  [107,"Bh","Bohrium","transition-metal",[2,8,18,32,32,13,2],270,7,7],
+  [108,"Hs","Hassium","transition-metal",[2,8,18,32,32,14,2],277,7,8],
+  [109,"Mt","Meitnerium","transition-metal",[2,8,18,32,32,15,2],278,7,9],
+  [110,"Ds","Darmstadtium","transition-metal",[2,8,18,32,32,17,1],281,7,10],
+  [111,"Rg","Roentgenium","transition-metal",[2,8,18,32,32,18,1],282,7,11],
+  [112,"Cn","Copernicium","transition-metal",[2,8,18,32,32,18,2],285,7,12],
+  [113,"Nh","Nihonium","post-transition",[2,8,18,32,32,18,3],286,7,13],
+  [114,"Fl","Flerovium","post-transition",[2,8,18,32,32,18,4],289,7,14],
+  [115,"Mc","Moscovium","post-transition",[2,8,18,32,32,18,5],290,7,15],
+  [116,"Lv","Livermorium","post-transition",[2,8,18,32,32,18,6],293,7,16],
+  [117,"Ts","Tennessine","halogen",[2,8,18,32,32,18,7],294,7,17],
+  [118,"Og","Oganesson","noble-gas",[2,8,18,32,32,18,8],294,7,18],
+];
+
+// ── lookups ──────────────────────────────────────
+// standard pos map: "row,col" -> element
+const STD_MAP = {};
+EL.forEach(e => { STD_MAP[`${e[6]},${e[7]}`] = e; });
+// Janet pos map: "row,col" -> element
+const JAN_MAP = {};
+EL.forEach(e => { const p=JANET_POS[e[0]]; if(p) JAN_MAP[`${p[0]},${p[1]}`]=e; });
+
+function getNeighbor(el, dir, view) {
+  let r, c;
+  if (view === 'janet') {
+    const p = JANET_POS[el[0]]; if(!p) return null;
+    [r, c] = p;
+  } else {
+    [r, c] = [el[6], el[7]];
+  }
+  const [dr, dc] = dir==='up'?[-1,0]:dir==='down'?[1,0]:dir==='left'?[0,-1]:[0,1];
+  const map = view==='janet'?JAN_MAP:STD_MAP;
+  return map[`${r+dr},${c+dc}`] || null;
+}
+
+function enColor(en) {
+  if (en === null || en === undefined) return '#3d3d5c';
+  const t = (en - 0.7) / (4.0 - 0.7);
+  const r = Math.round(59 + t * (239 - 59));
+  const g = Math.round(130 + (t < 0.5 ? t * 2 * (200 - 130) : (1 - (t-0.5)*2) * (200 - 68) + 68));
+  const b = Math.round(246 - t * (246 - 68));
+  return `rgb(${r},${g},${b})`;
+}
+
+const STATE_META = {
+  gas:     { icon:'☁', label:'Gas at STP',     c:'#60a5fa' },
+  liquid:  { icon:'💧', label:'Liquid at STP',  c:'#34d399' },
+  solid:   { icon:'▣', label:'Solid at STP',    c:'#94a3b8' },
+  unknown: { icon:'⚗', label:'State Unknown',   c:'#a78bfa' },
+};
+
+// ── BohrCanvas ───────────────────────────────────
+function dispCount(cnt, isVal) { return isVal ? Math.min(cnt,12) : Math.min(cnt,8); }
+
+function BohrCanvas({ el }) {
+  const ref = useRef(null);
+  const rafRef = useRef(null);
+  const stateRef = useRef(null);
+  const [num, sym, , cat, shells] = el;
+  const color = CATS[cat].c;
+
+  useEffect(() => {
+    const canvas = ref.current; if (!canvas) return;
+    const dpr = window.devicePixelRatio || 1;
+    const SZ = 290;
+    canvas.width = SZ*dpr; canvas.height = SZ*dpr;
+    canvas.style.width = SZ+'px'; canvas.style.height = SZ+'px';
+    const ctx = canvas.getContext('2d'); ctx.scale(dpr,dpr);
+    const cx=SZ/2, cy=SZ/2;
+    const actShells = shells.filter(c=>c>0);
+    const nS = actShells.length, vi = nS-1;
+    const nucR=16, minR=nucR+20, maxR=cx-16;
+    const radii = actShells.map((_,i)=>nS===1?(minR+maxR)/2:minR+(maxR-minR)*i/(nS-1));
+
+    if (!stateRef.current || stateRef.current.num!==num) {
+      stateRef.current = { num, t:0,
+        stars: Array.from({length:45},()=>({x:Math.random()*SZ,y:Math.random()*SZ,r:Math.random()*.8+.2,a:Math.random()*.5+.15,tw:Math.random()*Math.PI*2})),
+        angles: actShells.map((cnt,si)=>{const dc=dispCount(cnt,si===vi);return Array.from({length:dc},(_,ei)=>2*Math.PI*ei/dc+si*.42);}),
+      };
+    }
+    const SPEEDS = [3.2,1.6,.85,.48,.28,.16,.10];
+    let last=null;
+
+    function frame(ts) {
+      if (!last) last=ts;
+      const dt=Math.min((ts-last)/1000,.05); last=ts;
+      stateRef.current.t+=dt;
+      const t=stateRef.current.t;
+      stateRef.current.angles=stateRef.current.angles.map((arr,si)=>arr.map(a=>a+SPEEDS[Math.min(si,6)]*dt));
+      ctx.fillStyle='#020810'; ctx.fillRect(0,0,SZ,SZ);
+      stateRef.current.stars.forEach(s=>{
+        const tw=.4+.6*Math.sin(t*1.5+s.tw);
+        ctx.fillStyle=`rgba(255,255,255,${s.a*tw})`;
+        ctx.beginPath(); ctx.arc(s.x,s.y,s.r,0,Math.PI*2); ctx.fill();
+      });
+      for(let si=nS-1;si>=0;si--) {
+        const cnt=actShells[si], r=radii[si], isVal=si===vi;
+        ctx.save();
+        if(isVal){ctx.shadowBlur=14;ctx.shadowColor=color;}
+        ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2);
+        ctx.strokeStyle=isVal?color+'bb':'rgba(140,170,220,0.15)'; ctx.lineWidth=isVal?1.8:.7; ctx.stroke();
+        ctx.restore();
+        ctx.font=`${isVal?'bold ':''} 8px monospace`;
+        ctx.fillStyle=isVal?color:'rgba(140,170,220,0.38)'; ctx.textAlign='center'; ctx.textBaseline='bottom';
+        ctx.fillText(`${SHL[si]}:${cnt}`,cx,cy-r-3);
+        const dc=dispCount(cnt,isVal);
+        stateRef.current.angles[si].slice(0,dc).forEach(angle=>{
+          const ex=cx+r*Math.cos(angle), ey=cy+r*Math.sin(angle);
+          if(isVal){
+            const g=ctx.createRadialGradient(ex,ey,0,ex,ey,8);
+            g.addColorStop(0,'#fff'); g.addColorStop(.3,color); g.addColorStop(1,'transparent');
+            ctx.fillStyle=g; ctx.beginPath(); ctx.arc(ex,ey,8,0,Math.PI*2); ctx.fill();
+            ctx.fillStyle='white'; ctx.beginPath(); ctx.arc(ex,ey,1.8,0,Math.PI*2); ctx.fill();
+          } else {
+            ctx.fillStyle=si===0?'rgba(210,230,255,.85)':'rgba(160,190,240,.5)';
+            ctx.beginPath(); ctx.arc(ex,ey,si===0?2.1:1.6,0,Math.PI*2); ctx.fill();
+          }
+        });
+        if(!isVal&&cnt>dc){ctx.fillStyle='rgba(140,170,220,.4)';ctx.font='7.5px monospace';ctx.textAlign='left';ctx.textBaseline='middle';ctx.fillText(`x${cnt}`,cx+r+4,cy);}
+      }
+      const pulse=1+.12*Math.sin(t*2.8);
+      const ng=ctx.createRadialGradient(cx,cy,0,cx,cy,nucR*2.2*pulse);
+      ng.addColorStop(0,'rgba(255,255,255,.95)'); ng.addColorStop(.18,color+'ee'); ng.addColorStop(.5,color+'44'); ng.addColorStop(1,'transparent');
+      ctx.fillStyle=ng; ctx.beginPath(); ctx.arc(cx,cy,nucR*2.2*pulse,0,Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(cx,cy,nucR,0,Math.PI*2); ctx.fillStyle='#060d1e'; ctx.fill(); ctx.strokeStyle=color; ctx.lineWidth=1.8; ctx.stroke();
+      const dots=Math.min(num,7);
+      for(let i=0;i<dots;i++){const a=(2*Math.PI*i/dots)+t*.5;ctx.fillStyle=i%2===0?'#ff5555':'#5588ff';ctx.beginPath();ctx.arc(cx+nucR*.52*Math.cos(a),cy+nucR*.52*Math.sin(a),1.9,0,Math.PI*2);ctx.fill();}
+      const fs=sym.length>2?9:sym.length===2?11:13;
+      ctx.font=`bold ${fs}px monospace`; ctx.fillStyle='white'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(sym,cx,cy);
+      rafRef.current=requestAnimationFrame(frame);
+    }
+    rafRef.current=requestAnimationFrame(frame);
+    return()=>{if(rafRef.current)cancelAnimationFrame(rafRef.current);last=null;};
+  },[num]);
+
+  return <canvas ref={ref} style={{display:'block',borderRadius:'8px',margin:'0 auto'}} />;
+}
+
+// ── Cell ─────────────────────────────────────────
+function Cell({ el, onClick, colorMode, cw=43, ch=52 }) {
+  const [n,sym,,cat,,mass] = el;
+  const baseColor = CATS[cat].c;
+  const baseBg    = CATS[cat].b;
+  let cellColor = baseColor, cellBg = baseBg;
+  if (colorMode === 'en') {
+    cellColor = enColor(EN_DATA[n]);
+    cellBg = cellColor + '14';
+  } else if (colorMode === 'cosmic') {
+    const oi = ORIGIN[n];
+    cellColor = ORIGIN_INFO[oi].c;
+    cellBg = cellColor + '18';
+  }
+  const massStr = mass>=100 ? mass.toFixed(1) : mass.toFixed(2);
+  const state = STATES[n];
+  const isSyn = SYNTHETIC.has(n);
+  return (
+    <div className="ecell" onClick={()=>onClick(el)}
+      style={{width:cw,height:ch,background:cellBg,'--cc':cellColor,
+        borderStyle:state==='gas'?'dashed':state==='liquid'?'solid':'solid',
+        borderWidth:state==='liquid'?2:1,
+        position:'relative'}}>
+      <span className="enum">{n}</span>
+      <span className="esym" style={{color:cellColor}}>{sym}</span>
+      <span className="emass">{massStr}</span>
+      {isSyn && <span style={{position:'absolute',top:1,right:2,fontSize:6,opacity:.55,color:cellColor}}>⚗</span>}
+      {state==='liquid' && <span style={{position:'absolute',bottom:1,right:2,fontSize:5,color:'#34d399'}}>liq</span>}
+      {state==='gas' && <span style={{position:'absolute',bottom:1,right:2,fontSize:5,color:'#60a5fa'}}>gas</span>}
+    </div>
+  );
+}
+
+
+// ── Nav helpers ───────────────────────────────────
+function navAxisLabel(el, dir, view) {
+  const [, , , , , , trow, tcol] = el;
+  if (view === 'janet') {
+    const p = JANET_POS[el[0]];
+    if (!p) return '';
+    if (dir === 'left' || dir === 'right') {
+      const col = p[1];
+      const blk = col<=14?'f-block':col<=24?'d-block':col<=30?'p-block':'s-block';
+      return `Janet row ${p[0]} · ${blk}`;
+    }
+    const col = p[1];
+    const blk = col<=14?'f-block':col<=24?'d-block':col<=30?'p-block':'s-block';
+    return `Janet col ${p[1]} · ${blk}`;
+  }
+  // Standard / Dufour use standard positions
+  if (dir === 'up' || dir === 'down') {
+    const gNum = tcol;
+    const gLabel = gNum <= 2 ? `Group ${gNum}` : gNum >= 13 ? `Group ${gNum}` : `Group ${gNum} (transition)`;
+    return `same group · ${gLabel}`;
+  }
+  const period = trow > 7 ? (trow === 8 ? 6 : 7) : trow;
+  return `same period · Period ${period}`;
+}
+
+// ── NavCompass ────────────────────────────────────
+function NavCompass({ el, view, onNavigate }) {
+  const [, sym, , cat, , , trow, tcol] = el;
+  const color = CATS[cat].c;
+
+  const DIRS = [
+    { d: 'up',    arrow: '↑', ga: 'up'    },
+    { d: 'left',  arrow: '←', ga: 'left'  },
+    { d: 'right', arrow: '→', ga: 'right' },
+    { d: 'down',  arrow: '↓', ga: 'down'  },
+  ];
+
+  const neighbors = {};
+  DIRS.forEach(({ d }) => { neighbors[d] = getNeighbor(el, d, view); });
+
+  const btnStyle = (nc) => ({
+    border: `1px solid ${nc}55`,
+    color: nc,
+    background: nc + '0e',
+    borderRadius: 6,
+    cursor: 'pointer',
+    fontFamily: 'monospace',
+    padding: '4px 7px',
+    transition: 'opacity .1s, background .1s',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: 2,
+    minWidth: 58,
+  });
+
+  return (
+    <div style={{
+      display: 'grid',
+      gridTemplateColumns: '1fr auto 1fr',
+      gridTemplateRows: 'auto auto auto',
+      gap: 4,
+      marginBottom: 12,
+    }}>
+      {/* Row 1: up arrow (center) */}
+      <div />
+      {neighbors.up ? (
+        <button style={btnStyle(CATS[neighbors.up[3]].c)} onClick={() => onNavigate(neighbors.up)}>
+          <span style={{ fontSize: 11, fontWeight: 'bold' }}>
+            ↑ {neighbors.up[1]}
+          </span>
+          <span style={{ fontSize: 7, opacity: .5, letterSpacing: '.03em', textAlign: 'center' }}>
+            {navAxisLabel(el, 'up', view)}
+          </span>
+        </button>
+      ) : <div />}
+      <div />
+
+      {/* Row 2: left / current / right */}
+      {neighbors.left ? (
+        <button style={{ ...btnStyle(CATS[neighbors.left[3]].c), textAlign: 'right' }} onClick={() => onNavigate(neighbors.left)}>
+          <span style={{ fontSize: 11, fontWeight: 'bold' }}>← {neighbors.left[1]}</span>
+          <span style={{ fontSize: 7, opacity: .5, letterSpacing: '.03em' }}>
+            {navAxisLabel(el, 'left', view)}
+          </span>
+        </button>
+      ) : <div />}
+
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        padding: '4px 10px',
+        background: color + '14',
+        border: `1px solid ${color}44`,
+        borderRadius: 6,
+        fontSize: 13,
+        color: color,
+        fontWeight: 'bold',
+        fontFamily: 'monospace',
+      }}>
+        {sym}
+      </div>
+
+      {neighbors.right ? (
+        <button style={{ ...btnStyle(CATS[neighbors.right[3]].c), textAlign: 'left' }} onClick={() => onNavigate(neighbors.right)}>
+          <span style={{ fontSize: 11, fontWeight: 'bold' }}>{neighbors.right[1]} →</span>
+          <span style={{ fontSize: 7, opacity: .5, letterSpacing: '.03em' }}>
+            {navAxisLabel(el, 'right', view)}
+          </span>
+        </button>
+      ) : <div />}
+
+      {/* Row 3: down arrow (center) */}
+      <div />
+      {neighbors.down ? (
+        <button style={btnStyle(CATS[neighbors.down[3]].c)} onClick={() => onNavigate(neighbors.down)}>
+          <span style={{ fontSize: 11, fontWeight: 'bold' }}>
+            {neighbors.down[1]} ↓
+          </span>
+          <span style={{ fontSize: 7, opacity: .5, letterSpacing: '.03em', textAlign: 'center' }}>
+            {navAxisLabel(el, 'down', view)}
+          </span>
+        </button>
+      ) : <div />}
+      <div />
+    </div>
+  );
+}
+
+// ── Modal ─────────────────────────────────────────
+function Modal({ el, onClose, onNavigate, view }) {
+  const [num, sym, name, cat, shells, mass, trow, tcol] = el;
+  const { c, l } = CATS[cat];
+  const ed = EDATA[num] || {};
+  const actShells = shells.filter(s => s > 0);
+  const valence = actShells[actShells.length - 1];
+  const neutrons = Math.round(mass) - num;
+  const period = trow > 7 ? (trow === 8 ? 6 : 7) : trow;
+  const group = trow <= 7 ? tcol : 'f-block';
+  const rc = RARITY_COLORS[ed.rarity] || '#888';
+  const state = STATES[num];
+  const sm = STATE_META[state];
+  const isSyn = SYNTHETIC.has(num);
+  const enVal = EN_DATA[num];
+  const enHex = enColor(enVal);
+  const origIdx = ORIGIN[num];
+  const origInfo = ORIGIN_INFO[origIdx];
+
+  return (
+    <div className="overlay" onClick={onClose}>
+      <div className="modal" onClick={e => e.stopPropagation()}>
+        <button className="close-btn" onClick={onClose} style={{ color: c }}>✕</button>
+
+        {/* Navigation compass */}
+        <NavCompass el={el} view={view} onNavigate={onNavigate} />
+
+        {/* Header */}
+        <div className="modal-hdr">
+          <div className="modal-numbox" style={{ borderColor: c + '60', color: c + '99' }}>{num}</div>
+          <div className="modal-sym-lg" style={{ color: c }}>{sym}</div>
+          <div style={{ flex: 1 }}>
+            <div className="modal-name">{name}</div>
+            <div className="modal-cat" style={{ color: c + 'cc' }}>{l}</div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 5 }}>
+              {ed.rarity && <span className="badge" style={{ background: rc + '1a', borderColor: rc + '55', color: rc }}>◈ {ed.rarity}</span>}
+              {sm && <span className="badge" style={{ background: sm.c + '1a', borderColor: sm.c + '55', color: sm.c }}>{sm.icon} {sm.label}</span>}
+              {isSyn && <span className="badge" style={{ background: '#a78bfa1a', borderColor: '#a78bfa55', color: '#a78bfa' }}>⚗ Lab-synthesized</span>}
+              <span className="badge" style={{ background: origInfo.c + '1a', borderColor: origInfo.c + '55', color: origInfo.c }}>✦ {origInfo.l}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Description */}
+        {ed.desc && <div className="elem-desc">{ed.desc}</div>}
+
+        {/* Bohr model */}
+        <BohrCanvas el={el} />
+
+        {/* Bohr explainer */}
+        <div className="bohr-explainer">
+          <div className="bohr-explainer-title" style={{ color: c }}>↑ Bohr Atomic Model</div>
+          <div className="bohr-row">
+            <span className="bohr-key">Nucleus</span>
+            <span className="bohr-val">Center sphere — contains <strong style={{ color: '#ff5555' }}>{num} proton{num !== 1 ? 's' : ''}</strong> (+) and ~<strong style={{ color: '#5588ff' }}>{neutrons} neutron{neutrons !== 1 ? 's' : ''}</strong> (neutral). Protons determine the element's identity.</span>
+          </div>
+          <div className="bohr-row">
+            <span className="bohr-key">Shells</span>
+            <span className="bohr-val">{num} electron{num !== 1 ? 's' : ''} (−) orbit in {actShells.length} shell{actShells.length !== 1 ? 's' : ''}: {actShells.map((cnt, i) => `${SHL[i]}(${cnt})`).join(' → ')}. Inner shells fill first.</span>
+          </div>
+          <div className="bohr-row">
+            <span className="bohr-key">Valence</span>
+            <span className="bohr-val">Outermost <strong style={{ color: c }}>{SHL[actShells.length - 1]}-shell has {valence} electron{valence !== 1 ? 's' : ''}</strong> — these drive all chemical bonding and reactivity.</span>
+          </div>
+          <div className="bohr-row">
+            <span className="bohr-key">Note</span>
+            <span className="bohr-val" style={{ opacity: .5 }}>The Bohr model is a classical simplification. Real electrons exist as quantum probability clouds (orbitals), not fixed circular orbits.</span>
+          </div>
+        </div>
+
+        {/* Stats */}
+        <div className="info-grid">
+          {[
+            ['Atomic Mass', `${mass} u`],
+            ['Protons', num],
+            ['Neutrons', `~${neutrons}`],
+            ['Electrons', num],
+            ['Period', period],
+            ['Group', group],
+            ['Electronegativity', enVal != null ? `${enVal} (Pauling)` : 'N/A'],
+            ['Oxidation States', getOxStates(num)],
+            ['Valence e⁻', valence],
+          ].map(([k, v]) => (
+            <div key={k} className="info-item">
+              <span className="info-k">{k}</span>
+              <span className="info-v" style={{ color: c, fontSize: String(v).length > 10 ? 10 : 13 }}>{v}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* EN bar */}
+        {enVal != null && (
+          <div style={{ margin: '11px 0' }}>
+            <div className="sec-hdr" style={{ color: c + '66' }}>ELECTRONEGATIVITY (PAULING SCALE)</div>
+            <div style={{ height: 6, background: 'rgba(255,255,255,.06)', borderRadius: 3, position: 'relative', margin: '5px 0 2px' }}>
+              <div style={{ width: `${((enVal - 0.7) / (4.0 - 0.7)) * 100}%`, height: '100%', borderRadius: 3, background: `linear-gradient(90deg,#3b82f6,${enHex})` }} />
+              <div style={{ position: 'absolute', top: -11, left: `${((enVal - 0.7) / (4.0 - 0.7)) * 100}%`, transform: 'translateX(-50%)' }}>
+                <span style={{ fontSize: 9, fontFamily: 'monospace', color: enHex }}>{enVal}</span>
+              </div>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 8, opacity: .32 }}>
+              <span>0.7 (Fr — least)</span><span>3.98 (F — most)</span>
+            </div>
+          </div>
+        )}
+
+        {/* Cosmic origin */}
+        <div style={{ margin: '10px 0' }}>
+          <div className="sec-hdr" style={{ color: c + '66' }}>COSMIC ORIGIN</div>
+          <div style={{ fontSize: 10, lineHeight: 1.6, padding: '7px 10px', background: 'rgba(255,255,255,.025)', borderRadius: 6, borderLeft: `3px solid ${origInfo.c}` }}>
+            <span style={{ color: origInfo.c, fontWeight: 'bold' }}>{origInfo.l}</span>
+            <span style={{ color: 'rgba(190,210,240,.6)', marginLeft: 8 }}>{origInfo.d}</span>
+          </div>
+        </div>
+
+        {/* Facts */}
+        {ed.facts && ed.facts.length > 0 && (
+          <div style={{ margin: '11px 0' }}>
+            <div className="sec-hdr" style={{ color: c + '66' }}>NOTABLE FACTS</div>
+            {ed.facts.map((f, i) => (
+              <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'flex-start', marginBottom: 5 }}>
+                <span style={{ color: c, fontSize: 10, flexShrink: 0, marginTop: 2 }}>▸</span>
+                <span style={{ fontSize: 11, lineHeight: 1.6, color: 'rgba(190,210,240,.63)' }}>{f}</span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Locations */}
+        {ed.loc && (
+          <div style={{ margin: '10px 0' }}>
+            <div className="sec-hdr" style={{ color: c + '66' }}>WHERE IT'S FOUND</div>
+            <div style={{ fontSize: 11, lineHeight: 1.6, color: 'rgba(190,210,240,.58)', padding: '8px 11px', background: 'rgba(255,255,255,.025)', borderRadius: 7, borderLeft: `3px solid ${c}44`, display: 'flex' }}>
+              <span style={{ opacity: .4, marginRight: 6 }}>⊕</span>{ed.loc}
+            </div>
+          </div>
+        )}
+
+        {/* Shells */}
+        <div style={{ marginTop: 11 }}>
+          <div className="sec-hdr" style={{ color: c + '66' }}>ELECTRON CONFIGURATION</div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+            {actShells.map((cnt, i) => {
+              const isVal = i === actShells.length - 1;
+              return (
+                <div key={i} style={{
+                  border: `1px solid ${isVal ? c : 'rgba(140,170,220,.2)'}`,
+                  borderRadius: 5, padding: '4px 7px',
+                  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1,
+                  background: isVal ? c + '18' : 'rgba(140,170,220,.04)',
+                  color: isVal ? c : 'rgba(140,170,220,.48)',
+                  fontWeight: isVal ? 'bold' : 'normal',
+                }}>
+                  <span style={{ fontSize: 7, opacity: .62, fontFamily: 'monospace' }}>{SHL[i]}</span>
+                  <span style={{ fontSize: 13, fontWeight: 'bold', fontFamily: 'monospace' }}>{cnt}</span>
+                </div>
+              );
+            })}
+          </div>
+          <div style={{ fontSize: 10, marginTop: 8, color: c, opacity: .75 }}>
+            ⬡ {valence} valence electron{valence !== 1 ? 's' : ''} in {SHL[actShells.length - 1]}-shell
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function getOxStates(n) {
+  const OX = { 1:'+1,-1',2:'0',3:'+1',4:'+2',5:'+3,-3',6:'+4,-4',7:'+5,+3,-3',8:'-2',9:'-1',10:'0',11:'+1',12:'+2',13:'+3',14:'+4,-4',15:'+5,+3,-3',16:'+6,+4,-2',17:'+7,-1',18:'0',19:'+1',20:'+2',21:'+3',22:'+4,+3,+2',23:'+5,+4,+3',24:'+6,+3,+2',25:'+7,+4,+2',26:'+3,+2',27:'+3,+2',28:'+2',29:'+2,+1',30:'+2',31:'+3',32:'+4,+2',33:'+5,+3,-3',34:'+6,-2',35:'+5,-1',36:'0',37:'+1',38:'+2',39:'+3',40:'+4',41:'+5,+3',42:'+6,+4,+2',43:'+7,+4',44:'+4,+3',45:'+3',46:'+4,+2',47:'+1',48:'+2',49:'+3',50:'+4,+2',51:'+5,+3,-3',52:'+6,-2',53:'+7,-1',54:'0',55:'+1',56:'+2',79:'+3,+1',80:'+2,+1',82:'+4,+2',83:'+3',92:'+6,+4',94:'+4,+3' };
+  return OX[n] || (n > 86 ? '+3,+4' : 'various');
+}
+
+// ── PeriodicTable ─────────────────────────────────
+function PeriodicTable() {
+  const [sel, setSel] = useState(null);
+  const [view, setView] = useState('standard');
+  const [colorMode, setColorMode] = useState('category');
+
+  const CW_STD = 43, CH_STD = 52;
+  const CW_JAN = 31, CH_JAN = 44;
+
+  const mainEls = EL.filter(e => e[6] <= 7);
+  const lantEls = EL.filter(e => e[6] === 8);
+  const actEls  = EL.filter(e => e[6] === 9);
+
+  const VIEW_TABS  = [{ id:'standard', l:'Standard (IUPAC)' }, { id:'janet', l:'Janet / Left-Step' }, { id:'dufour', l:'Dufour Spiral' }];
+  const COLOR_TABS = [{ id:'category', l:'Category' }, { id:'cosmic', l:'Cosmic Origin' }, { id:'en', l:'Electronegativity' }];
+
+  function getDufourPos(el, W, H) {
+    const [,,,, shells] = el;
+    const act = shells.filter(c => c > 0);
+    const period = act.length;
+    const valence = act[act.length - 1];
+    const a = (valence / 8) * 2 * Math.PI - Math.PI / 2;
+    const r = 28 + period * 62;
+    return { x: W/2 + r * Math.cos(a), y: H/2 + r * Math.sin(a) };
+  }
+
+  const CSS = `
+    * { box-sizing: border-box; }
+    .ecell { border:1px solid var(--cc,#334); border-radius:4px;
+      display:flex; flex-direction:column; align-items:center; justify-content:center;
+      cursor:pointer; user-select:none; position:relative;
+      transition:transform .12s,box-shadow .12s,border-color .12s; }
+    .ecell:hover { transform:scale(1.22); z-index:10;
+      box-shadow:0 0 14px var(--cc,#38bdf8); border-color:var(--cc,#38bdf8); }
+    .enum  { font-size:7px; opacity:.4; line-height:1; margin-top:2px; }
+    .esym  { font-size:15px; font-weight:bold; line-height:1.1; }
+    .emass { font-size:6px; opacity:.35; line-height:1; margin-bottom:2px; }
+    .overlay { position:fixed; inset:0; z-index:100; background:rgba(2,8,16,.88);
+      backdrop-filter:blur(8px); display:flex; align-items:center; justify-content:center;
+      animation:fadeIn .15s ease; }
+    @keyframes fadeIn { from{opacity:0}to{opacity:1} }
+    .modal { background:#060e1c; border:1px solid rgba(100,140,200,.22);
+      border-radius:14px; padding:20px; max-width:420px; width:94vw;
+      animation:popIn .18s cubic-bezier(.34,1.56,.64,1);
+      max-height:90vh; overflow-y:auto; position:relative;
+      scrollbar-width:thin; scrollbar-color:rgba(100,140,200,.15) transparent; }
+    @keyframes popIn { from{transform:scale(.86);opacity:0}to{transform:scale(1);opacity:1} }
+    .close-btn { position:absolute; top:10px; right:12px; background:none; border:none;
+      font-size:18px; cursor:pointer; opacity:.6; padding:4px 8px; font-family:monospace; }
+    .close-btn:hover { opacity:1; }
+    .modal-hdr { display:flex; align-items:flex-start; gap:12px; margin-bottom:11px; }
+    .modal-numbox { font-size:10px; border:1px solid; border-radius:4px; padding:2px 5px;
+      min-width:26px; text-align:center; flex-shrink:0; margin-top:4px; font-family:monospace; }
+    .modal-sym-lg { font-size:40px; font-weight:bold; line-height:1; flex-shrink:0; font-family:monospace; }
+    .modal-name { font-size:15px; font-weight:bold; color:#dde6f5; }
+    .modal-cat { font-size:10px; letter-spacing:.05em; margin-top:1px; }
+    .badge { display:inline-block; font-size:9px; letter-spacing:.06em;
+      border:1px solid; border-radius:10px; padding:2px 7px; font-family:monospace; }
+    .elem-desc { font-size:11px; line-height:1.7; color:rgba(190,210,240,.68);
+      margin-bottom:11px; padding:9px 11px; background:rgba(255,255,255,.025);
+      border-radius:7px; border-left:2px solid rgba(100,140,200,.18); }
+    .bohr-explainer { background:rgba(255,255,255,.02); border-radius:7px; padding:9px 11px;
+      margin:10px 0; border:1px solid rgba(100,140,200,.1); }
+    .bohr-explainer-title { font-size:9px; letter-spacing:.1em; margin-bottom:7px; font-family:monospace; }
+    .bohr-row { display:flex; gap:8px; margin-bottom:5px; align-items:flex-start; }
+    .bohr-key { font-size:8px; min-width:52px; opacity:.4; flex-shrink:0; padding-top:1px;
+      font-family:monospace; letter-spacing:.04em; }
+    .bohr-val { font-size:10px; line-height:1.55; color:rgba(190,210,240,.65); }
+    .info-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:5px; margin:11px 0; }
+    .info-item { background:rgba(255,255,255,.04); border-radius:5px; padding:6px 8px;
+      display:flex; flex-direction:column; gap:2px; }
+    .info-k { font-size:7px; opacity:.3; letter-spacing:.05em; }
+    .info-v { font-weight:bold; font-family:monospace; }
+    .sec-hdr { font-size:8px; letter-spacing:.14em; margin-bottom:6px; font-family:monospace; }
+    .placeholder { border:1px dashed rgba(140,170,220,.14); border-radius:4px; font-size:7px;
+      display:flex; align-items:center; justify-content:center;
+      color:rgba(140,170,220,.22); font-family:monospace; }
+    .tab-btn { background:rgba(255,255,255,.04); border:1px solid rgba(140,170,220,.15);
+      border-radius:5px; color:rgba(190,210,240,.5); cursor:pointer; font-family:monospace;
+      font-size:9px; padding:4px 10px; letter-spacing:.04em; transition:.1s; }
+    .tab-btn:hover { opacity:.8; }
+    .tab-btn.active { border-color:currentColor; color:#dde6f5; background:rgba(255,255,255,.08); }
+    .dufour-node { position:absolute; display:flex; align-items:center; justify-content:center;
+      border-radius:50%; cursor:pointer; font-family:monospace; transition:.15s; }
+    .dufour-node:hover { transform:scale(1.35); z-index:10; }
+  `;
+
+  return (
+    <div style={{ background:'#020810', minHeight:'100vh', color:'#dde6f5', fontFamily:'monospace', padding:'12px 16px', overflowX:'auto' }}>
+      <style>{CSS}</style>
+
+      <div style={{ fontSize:13, letterSpacing:'.18em', opacity:.4, marginBottom:2 }}>⬡ PERIODIC TABLE OF THE ELEMENTS</div>
+      <div style={{ fontSize:8, opacity:.18, letterSpacing:'.08em', marginBottom:10 }}>118 ELEMENTS · BOHR MODEL · FACTS · RARITY · LOCATION · NAVIGATION</div>
+
+      {/* Controls */}
+      <div style={{ display:'flex', gap:16, flexWrap:'wrap', marginBottom:10, alignItems:'flex-start' }}>
+        <div>
+          <div style={{ fontSize:7, opacity:.28, letterSpacing:'.1em', marginBottom:4 }}>TABLE LAYOUT</div>
+          <div style={{ display:'flex', gap:4, flexWrap:'wrap' }}>
+            {VIEW_TABS.map(t => (
+              <button key={t.id} className={`tab-btn ${view===t.id?'active':''}`}
+                style={{ color: view===t.id?'#38bdf8':undefined }} onClick={()=>setView(t.id)}>{t.l}</button>
+            ))}
+          </div>
+        </div>
+        <div>
+          <div style={{ fontSize:7, opacity:.28, letterSpacing:'.1em', marginBottom:4 }}>COLOR CODING</div>
+          <div style={{ display:'flex', gap:4, flexWrap:'wrap' }}>
+            {COLOR_TABS.map(t => (
+              <button key={t.id} className={`tab-btn ${colorMode===t.id?'active':''}`}
+                style={{ color: colorMode===t.id?'#f97316':undefined }} onClick={()=>setColorMode(t.id)}>{t.l}</button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* ── STANDARD ── */}
+      {view === 'standard' && (
+        <>
+          <div style={{ position:'relative', width:18*(CW_STD+2)+'px', height:7*(CH_STD+2)+'px' }}>
+            {mainEls.map(e => (
+              <div key={e[0]} style={{ position:'absolute', left:(e[7]-1)*(CW_STD+2)+'px', top:(e[6]-1)*(CH_STD+2)+'px' }}>
+                <Cell el={e} onClick={setSel} colorMode={colorMode} cw={CW_STD} ch={CH_STD} />
+              </div>
+            ))}
+            <div style={{ position:'absolute', left:2*(CW_STD+2)+'px', top:5*(CH_STD+2)+'px' }}>
+              <div className="placeholder" style={{ width:CW_STD, height:CH_STD }}>57–71</div>
+            </div>
+            <div style={{ position:'absolute', left:2*(CW_STD+2)+'px', top:6*(CH_STD+2)+'px' }}>
+              <div className="placeholder" style={{ width:CW_STD, height:CH_STD }}>89–103</div>
+            </div>
+          </div>
+          <div style={{ marginTop:12 }}>
+            <div style={{ fontSize:7, opacity:.2, letterSpacing:'.08em', marginBottom:2, paddingLeft:2*(CW_STD+2)+'px' }}>LANTHANIDES (f-block, period 6)</div>
+            <div style={{ display:'flex', gap:2, paddingLeft:2*(CW_STD+2)+'px' }}>
+              {lantEls.map(e => <Cell key={e[0]} el={e} onClick={setSel} colorMode={colorMode} cw={CW_STD} ch={CH_STD} />)}
+            </div>
+          </div>
+          <div style={{ marginTop:2 }}>
+            <div style={{ fontSize:7, opacity:.2, letterSpacing:'.08em', marginBottom:2, paddingLeft:2*(CW_STD+2)+'px' }}>ACTINIDES (f-block, period 7)</div>
+            <div style={{ display:'flex', gap:2, paddingLeft:2*(CW_STD+2)+'px' }}>
+              {actEls.map(e => <Cell key={e[0]} el={e} onClick={setSel} colorMode={colorMode} cw={CW_STD} ch={CH_STD} />)}
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* ── JANET ── */}
+      {view === 'janet' && (
+        <div>
+          <div style={{ fontSize:9, opacity:.3, marginBottom:8, letterSpacing:'.04em', maxWidth:700, lineHeight:1.6 }}>
+            <strong style={{ opacity:.7 }}>Janet Left-Step Table (1928):</strong> f→d→p→s reading left to right. Each row ends with the alkaline earth (s²). Helium placed in Group 2 by electron configuration. All 118 elements appear inline — no f-block pullout. Navigate with ←→↑↓ in any element view.
+          </div>
+          <div style={{ position:'relative', width:32*(CW_JAN+1)+'px', height:7*(CH_JAN+1)+'px' }}>
+            {EL.map(e => {
+              const p = JANET_POS[e[0]]; if (!p) return null;
+              return (
+                <div key={e[0]} style={{ position:'absolute', left:(p[1]-1)*(CW_JAN+1)+'px', top:(p[0]-1)*(CH_JAN+1)+'px' }}>
+                  <Cell el={e} onClick={setSel} colorMode={colorMode} cw={CW_JAN} ch={CH_JAN} />
+                </div>
+              );
+            })}
+          </div>
+          <div style={{ display:'flex', gap:14, marginTop:8, flexWrap:'wrap', fontSize:8, opacity:.28 }}>
+            <span>f-block: cols 1–14</span>
+            <span>d-block: cols 15–24</span>
+            <span>p-block: cols 25–30</span>
+            <span>s-block: cols 31–32</span>
+          </div>
+        </div>
+      )}
+
+      {/* ── DUFOUR SPIRAL ── */}
+      {view === 'dufour' && (
+        <div>
+          <div style={{ fontSize:9, opacity:.3, marginBottom:8, maxWidth:700, lineHeight:1.6 }}>
+            <strong style={{ opacity:.7 }}>Dufour-inspired radial layout:</strong> Elements radiate outward by electron shell count (period). Angular position maps to valence electron count. Noble gases (8 valence) anchor the top of each period ring. Navigate with ←→↑↓ using standard table adjacency.
+          </div>
+          <div style={{ position:'relative', width:'900px', height:'840px' }}>
+            {EL.map(e => {
+              const cc = colorMode==='en' ? enColor(EN_DATA[e[0]]) : colorMode==='cosmic' ? ORIGIN_INFO[ORIGIN[e[0]]].c : CATS[e[3]].c;
+              const pos = getDufourPos(e, 900, 840);
+              const sz = 26;
+              return (
+                <div key={e[0]} className="dufour-node" onClick={()=>setSel(e)}
+                  style={{ left:pos.x-sz/2, top:pos.y-sz/2, width:sz, height:sz,
+                    border:`1px solid ${cc}`, background:cc+'15', '--cc':cc }}>
+                  <span style={{ fontSize:e[1].length>2?6:e[1].length===2?7:9, color:cc, fontWeight:'bold' }}>{e[1]}</span>
+                </div>
+              );
+            })}
+            <div style={{ position:'absolute', left:'50%', top:'50%', transform:'translate(-50%,-50%)', fontSize:22, opacity:.12 }}>⚛</div>
+          </div>
+        </div>
+      )}
+
+      {/* Legends */}
+      <div style={{ marginTop:14, display:'flex', gap:24, flexWrap:'wrap' }}>
+        {colorMode === 'category' && (
+          <div>
+            <div style={{ fontSize:7, opacity:.22, letterSpacing:'.08em', marginBottom:5 }}>ELEMENT CATEGORY</div>
+            <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
+              {Object.entries(CATS).map(([k,{l,c}])=>(
+                <div key={k} style={{ display:'flex', alignItems:'center', gap:4, fontSize:8, opacity:.5 }}>
+                  <div style={{ width:8, height:8, borderRadius:2, background:c+'33', border:`1px solid ${c}`, flexShrink:0 }} />
+                  {l}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        {colorMode === 'cosmic' && (
+          <div>
+            <div style={{ fontSize:7, opacity:.22, letterSpacing:'.08em', marginBottom:5 }}>COSMIC ORIGIN</div>
+            <div style={{ display:'flex', flexWrap:'wrap', gap:7 }}>
+              {ORIGIN_INFO.map(o => (
+                <div key={o.id} style={{ display:'flex', alignItems:'center', gap:4, fontSize:8, opacity:.55 }}>
+                  <div style={{ width:8, height:8, borderRadius:'50%', background:o.c, flexShrink:0 }} />
+                  {o.l}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        {colorMode === 'en' && (
+          <div>
+            <div style={{ fontSize:7, opacity:.22, letterSpacing:'.08em', marginBottom:5 }}>ELECTRONEGATIVITY (PAULING)</div>
+            <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+              <span style={{ fontSize:8, opacity:.4 }}>Low 0.7 (Fr)</span>
+              <div style={{ width:150, height:7, borderRadius:3, background:'linear-gradient(90deg,#3b82f6,#84cc16,#ef4444)', opacity:.7 }} />
+              <span style={{ fontSize:8, opacity:.4 }}>High 3.98 (F)</span>
+            </div>
+          </div>
+        )}
+        <div>
+          <div style={{ fontSize:7, opacity:.22, letterSpacing:'.08em', marginBottom:5 }}>RARITY</div>
+          <div style={{ display:'flex', flexWrap:'wrap', gap:5 }}>
+            {Object.entries(RARITY_COLORS).map(([r,c]) => (
+              <div key={r} style={{ display:'flex', alignItems:'center', gap:4, fontSize:8, opacity:.5 }}>
+                <div style={{ width:7, height:7, borderRadius:'50%', background:c }} />
+                {r}
+              </div>
+            ))}
+          </div>
+        </div>
+        <div>
+          <div style={{ fontSize:7, opacity:.22, letterSpacing:'.08em', marginBottom:5 }}>PHYSICAL STATE AT STP</div>
+          <div style={{ display:'flex', gap:10 }}>
+            {Object.entries(STATE_META).map(([s,m]) => (
+              <div key={s} style={{ display:'flex', alignItems:'center', gap:4, fontSize:8, opacity:.5, color:m.c }}>
+                {m.icon} {s}
+              </div>
+            ))}
+          </div>
+        </div>
+        <div>
+          <div style={{ fontSize:7, opacity:.22, letterSpacing:'.08em', marginBottom:5 }}>CELL BORDERS</div>
+          <div style={{ display:'flex', gap:10, fontSize:8, opacity:.4 }}>
+            <span>solid = solid</span>
+            <span style={{ borderBottom:'1px dashed rgba(140,170,220,.5)', paddingBottom:1 }}>dashed = gas</span>
+            <span style={{ borderBottom:'2px solid rgba(52,211,153,.5)', paddingBottom:1 }}>thick = liquid</span>
+            <span>⚗ = synthetic</span>
+          </div>
+        </div>
+      </div>
+
+      {sel && <Modal el={sel} onClose={()=>setSel(null)} onNavigate={e=>setSel(e)} view={view} />}
+    </div>
+  );
+}
+
+
+const _root = ReactDOM.createRoot(document.getElementById("root"));
+_root.render(React.createElement(PeriodicTable));
+
+  </script>
+
+  <script>
+    // Hide loader once Babel has compiled and React has mounted
+    window.addEventListener('load', function() {
+      requestAnimationFrame(function() {
+        setTimeout(function() {
+          var loader = document.getElementById('loading');
+          if (loader) { loader.style.opacity = '0'; setTimeout(function(){ loader.remove(); }, 300); }
+        }, 100);
+      });
+    });
+  </script>
+
+</body>
+</html>
