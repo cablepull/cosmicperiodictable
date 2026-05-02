@@ -1,65 +1,34 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Periodic Table of the Elements</title>
-
-  <!-- React 18 -->
   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-  <!-- Babel standalone — transpiles JSX in the browser, no build step needed -->
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-
   <style>
-    *, *::before, *::after { box-sizing: border-box; }
-    html, body {
-      margin: 0;
-      padding: 0;
-      background: #020810;
-      color: #dde6f5;
-      font-family: 'Courier New', Courier, monospace;
-      min-height: 100vh;
-    }
-    #root { min-height: 100vh; }
-
-    /* Loading state shown before Babel finishes */
-    #loading {
-      position: fixed;
-      inset: 0;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      background: #020810;
-      color: rgba(56,189,248,.6);
-      font-family: 'Courier New', monospace;
-      font-size: 13px;
-      letter-spacing: .15em;
-      gap: 12px;
-      z-index: 9999;
-      transition: opacity .3s;
-    }
-    #loading .spinner {
-      width: 32px; height: 32px;
-      border: 2px solid rgba(56,189,248,.15);
-      border-top-color: rgba(56,189,248,.7);
-      border-radius: 50%;
-      animation: spin .8s linear infinite;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
+    *,*::before,*::after{box-sizing:border-box;}
+    html,body{margin:0;padding:0;background:#020810;color:#dde6f5;min-height:100vh;
+      font-family:'Courier New',Courier,monospace;}
+    #root{min-height:100vh;}
+    #loading{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;
+      justify-content:center;background:#020810;color:rgba(56,189,248,.55);
+      font-family:'Courier New',monospace;font-size:12px;letter-spacing:.15em;gap:10px;
+      z-index:9999;transition:opacity .4s;}
+    .spin{width:28px;height:28px;border:2px solid rgba(56,189,248,.12);
+      border-top-color:rgba(56,189,248,.65);border-radius:50%;
+      animation:spin .75s linear infinite;}
+    @keyframes spin{to{transform:rotate(360deg);}}
   </style>
 </head>
 <body>
-
   <div id="loading">
-    <div class="spinner"></div>
+    <div class="spin"></div>
     <span>⬡ PERIODIC TABLE</span>
-    <span style="font-size:9px;opacity:.4;letter-spacing:.1em">INITIALISING 118 ELEMENTS</span>
+    <span style="font-size:8px;opacity:.35;letter-spacing:.1em">LOADING 118 ELEMENTS</span>
   </div>
-
   <div id="root"></div>
-
   <script type="text/babel" data-presets="react">
 const { useState, useEffect, useRef } = React;
 
@@ -827,11 +796,8 @@ const EL = [
   [118,"Og","Oganesson","noble-gas",[2,8,18,32,32,18,8],294,7,18],
 ];
 
-// ── lookups ──────────────────────────────────────
-// standard pos map: "row,col" -> element
 const STD_MAP = {};
 EL.forEach(e => { STD_MAP[`${e[6]},${e[7]}`] = e; });
-// Janet pos map: "row,col" -> element
 const JAN_MAP = {};
 EL.forEach(e => { const p=JANET_POS[e[0]]; if(p) JAN_MAP[`${p[0]},${p[1]}`]=e; });
 
@@ -839,21 +805,31 @@ function getNeighbor(el, dir, view) {
   let r, c;
   if (view === 'janet') {
     const p = JANET_POS[el[0]]; if(!p) return null;
-    [r, c] = p;
-  } else {
-    [r, c] = [el[6], el[7]];
+    [r,c] = p;
+  } else { [r,c] = [el[6],el[7]]; }
+  const [dr,dc] = dir==='up'?[-1,0]:dir==='down'?[1,0]:dir==='left'?[0,-1]:[0,1];
+  return (view==='janet'?JAN_MAP:STD_MAP)[`${r+dr},${c+dc}`] || null;
+}
+
+function navAxisLabel(el, dir, view) {
+  const [,,,,,, trow, tcol] = el;
+  if (view === 'janet') {
+    const p = JANET_POS[el[0]]; if(!p) return '';
+    const col = p[1];
+    const blk = col<=14?'f-block':col<=24?'d-block':col<=30?'p-block':'s-block';
+    return (dir==='left'||dir==='right') ? `row ${p[0]} · ${blk}` : `col ${p[1]} · ${blk}`;
   }
-  const [dr, dc] = dir==='up'?[-1,0]:dir==='down'?[1,0]:dir==='left'?[0,-1]:[0,1];
-  const map = view==='janet'?JAN_MAP:STD_MAP;
-  return map[`${r+dr},${c+dc}`] || null;
+  if (dir==='up'||dir==='down') return `same group · G${tcol}`;
+  const period = trow>7?(trow===8?6:7):trow;
+  return `same period · P${period}`;
 }
 
 function enColor(en) {
-  if (en === null || en === undefined) return '#3d3d5c';
-  const t = (en - 0.7) / (4.0 - 0.7);
-  const r = Math.round(59 + t * (239 - 59));
-  const g = Math.round(130 + (t < 0.5 ? t * 2 * (200 - 130) : (1 - (t-0.5)*2) * (200 - 68) + 68));
-  const b = Math.round(246 - t * (246 - 68));
+  if (!en) return '#3d3d5c';
+  const t = (en-0.7)/(4.0-0.7);
+  const r = Math.round(59+t*(239-59));
+  const g = Math.round(130+(t<0.5?t*2*(200-130):(1-(t-.5)*2)*(200-68)+68));
+  const b = Math.round(246-t*(246-68));
   return `rgb(${r},${g},${b})`;
 }
 
@@ -864,695 +840,559 @@ const STATE_META = {
   unknown: { icon:'⚗', label:'State Unknown',   c:'#a78bfa' },
 };
 
-// ── BohrCanvas ───────────────────────────────────
-function dispCount(cnt, isVal) { return isVal ? Math.min(cnt,12) : Math.min(cnt,8); }
+function dispCount(cnt,isVal){return isVal?Math.min(cnt,12):Math.min(cnt,8);}
 
-function BohrCanvas({ el }) {
+// ── BohrCanvas ── accepts a `sz` prop so modal can embed at smaller size
+function BohrCanvas({ el, sz=260 }) {
   const ref = useRef(null);
   const rafRef = useRef(null);
-  const stateRef = useRef(null);
-  const [num, sym, , cat, shells] = el;
+  const stRef = useRef(null);
+  const [num,sym,,cat,shells] = el;
   const color = CATS[cat].c;
 
-  useEffect(() => {
-    const canvas = ref.current; if (!canvas) return;
-    const dpr = window.devicePixelRatio || 1;
-    const SZ = 290;
-    canvas.width = SZ*dpr; canvas.height = SZ*dpr;
-    canvas.style.width = SZ+'px'; canvas.style.height = SZ+'px';
-    const ctx = canvas.getContext('2d'); ctx.scale(dpr,dpr);
-    const cx=SZ/2, cy=SZ/2;
-    const actShells = shells.filter(c=>c>0);
-    const nS = actShells.length, vi = nS-1;
-    const nucR=16, minR=nucR+20, maxR=cx-16;
-    const radii = actShells.map((_,i)=>nS===1?(minR+maxR)/2:minR+(maxR-minR)*i/(nS-1));
-
-    if (!stateRef.current || stateRef.current.num!==num) {
-      stateRef.current = { num, t:0,
-        stars: Array.from({length:45},()=>({x:Math.random()*SZ,y:Math.random()*SZ,r:Math.random()*.8+.2,a:Math.random()*.5+.15,tw:Math.random()*Math.PI*2})),
-        angles: actShells.map((cnt,si)=>{const dc=dispCount(cnt,si===vi);return Array.from({length:dc},(_,ei)=>2*Math.PI*ei/dc+si*.42);}),
+  useEffect(()=>{
+    const canvas=ref.current; if(!canvas) return;
+    const dpr=window.devicePixelRatio||1;
+    canvas.width=sz*dpr; canvas.height=sz*dpr;
+    canvas.style.width=sz+'px'; canvas.style.height=sz+'px';
+    const ctx=canvas.getContext('2d'); ctx.scale(dpr,dpr);
+    const cx=sz/2,cy=sz/2;
+    const actShells=shells.filter(c=>c>0);
+    const nS=actShells.length,vi=nS-1;
+    const nucR=Math.max(11,sz*0.055);
+    const minR=nucR+sz*0.07,maxR=cx-sz*0.06;
+    const radii=actShells.map((_,i)=>nS===1?(minR+maxR)/2:minR+(maxR-minR)*i/(nS-1));
+    if(!stRef.current||stRef.current.num!==num){
+      stRef.current={num,t:0,
+        stars:Array.from({length:40},()=>({x:Math.random()*sz,y:Math.random()*sz,r:Math.random()*.7+.2,a:Math.random()*.45+.12,tw:Math.random()*Math.PI*2})),
+        angles:actShells.map((cnt,si)=>{const dc=dispCount(cnt,si===vi);return Array.from({length:dc},(_,ei)=>2*Math.PI*ei/dc+si*.42);}),
       };
     }
-    const SPEEDS = [3.2,1.6,.85,.48,.28,.16,.10];
-    let last=null;
-
-    function frame(ts) {
-      if (!last) last=ts;
-      const dt=Math.min((ts-last)/1000,.05); last=ts;
-      stateRef.current.t+=dt;
-      const t=stateRef.current.t;
-      stateRef.current.angles=stateRef.current.angles.map((arr,si)=>arr.map(a=>a+SPEEDS[Math.min(si,6)]*dt));
-      ctx.fillStyle='#020810'; ctx.fillRect(0,0,SZ,SZ);
-      stateRef.current.stars.forEach(s=>{
-        const tw=.4+.6*Math.sin(t*1.5+s.tw);
-        ctx.fillStyle=`rgba(255,255,255,${s.a*tw})`;
-        ctx.beginPath(); ctx.arc(s.x,s.y,s.r,0,Math.PI*2); ctx.fill();
-      });
-      for(let si=nS-1;si>=0;si--) {
-        const cnt=actShells[si], r=radii[si], isVal=si===vi;
-        ctx.save();
-        if(isVal){ctx.shadowBlur=14;ctx.shadowColor=color;}
-        ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2);
-        ctx.strokeStyle=isVal?color+'bb':'rgba(140,170,220,0.15)'; ctx.lineWidth=isVal?1.8:.7; ctx.stroke();
-        ctx.restore();
-        ctx.font=`${isVal?'bold ':''} 8px monospace`;
-        ctx.fillStyle=isVal?color:'rgba(140,170,220,0.38)'; ctx.textAlign='center'; ctx.textBaseline='bottom';
-        ctx.fillText(`${SHL[si]}:${cnt}`,cx,cy-r-3);
+    const SPEEDS=[3.2,1.6,.85,.48,.28,.16,.10]; let last=null;
+    function frame(ts){
+      if(!last)last=ts; const dt=Math.min((ts-last)/1000,.05); last=ts;
+      stRef.current.t+=dt; const t=stRef.current.t;
+      stRef.current.angles=stRef.current.angles.map((arr,si)=>arr.map(a=>a+SPEEDS[Math.min(si,6)]*dt));
+      ctx.fillStyle='#020810'; ctx.fillRect(0,0,sz,sz);
+      stRef.current.stars.forEach(s=>{const tw=.4+.6*Math.sin(t*1.5+s.tw);ctx.fillStyle=`rgba(255,255,255,${s.a*tw})`;ctx.beginPath();ctx.arc(s.x,s.y,s.r,0,Math.PI*2);ctx.fill();});
+      for(let si=nS-1;si>=0;si--){
+        const cnt=actShells[si],r=radii[si],isVal=si===vi;
+        ctx.save(); if(isVal){ctx.shadowBlur=12;ctx.shadowColor=color;}
+        ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);
+        ctx.strokeStyle=isVal?color+'bb':'rgba(140,170,220,0.14)'; ctx.lineWidth=isVal?1.6:.6; ctx.stroke(); ctx.restore();
+        const lfs=Math.max(6,sz*.027);
+        ctx.font=`${isVal?'bold ':''} ${lfs}px monospace`; ctx.fillStyle=isVal?color:'rgba(140,170,220,.35)'; ctx.textAlign='center'; ctx.textBaseline='bottom';
+        ctx.fillText(`${SHL[si]}:${cnt}`,cx,cy-r-2);
         const dc=dispCount(cnt,isVal);
-        stateRef.current.angles[si].slice(0,dc).forEach(angle=>{
-          const ex=cx+r*Math.cos(angle), ey=cy+r*Math.sin(angle);
-          if(isVal){
-            const g=ctx.createRadialGradient(ex,ey,0,ex,ey,8);
-            g.addColorStop(0,'#fff'); g.addColorStop(.3,color); g.addColorStop(1,'transparent');
-            ctx.fillStyle=g; ctx.beginPath(); ctx.arc(ex,ey,8,0,Math.PI*2); ctx.fill();
-            ctx.fillStyle='white'; ctx.beginPath(); ctx.arc(ex,ey,1.8,0,Math.PI*2); ctx.fill();
-          } else {
-            ctx.fillStyle=si===0?'rgba(210,230,255,.85)':'rgba(160,190,240,.5)';
-            ctx.beginPath(); ctx.arc(ex,ey,si===0?2.1:1.6,0,Math.PI*2); ctx.fill();
-          }
+        stRef.current.angles[si].slice(0,dc).forEach(angle=>{
+          const ex=cx+r*Math.cos(angle),ey=cy+r*Math.sin(angle),er=sz*.028;
+          if(isVal){const g=ctx.createRadialGradient(ex,ey,0,ex,ey,er*2.8);g.addColorStop(0,'#fff');g.addColorStop(.3,color);g.addColorStop(1,'transparent');ctx.fillStyle=g;ctx.beginPath();ctx.arc(ex,ey,er*2.8,0,Math.PI*2);ctx.fill();ctx.fillStyle='white';ctx.beginPath();ctx.arc(ex,ey,er*.7,0,Math.PI*2);ctx.fill();}
+          else{ctx.fillStyle=si===0?'rgba(210,230,255,.85)':'rgba(160,190,240,.5)';ctx.beginPath();ctx.arc(ex,ey,si===0?er*.8:er*.6,0,Math.PI*2);ctx.fill();}
         });
-        if(!isVal&&cnt>dc){ctx.fillStyle='rgba(140,170,220,.4)';ctx.font='7.5px monospace';ctx.textAlign='left';ctx.textBaseline='middle';ctx.fillText(`x${cnt}`,cx+r+4,cy);}
+        if(!isVal&&cnt>dc){ctx.fillStyle='rgba(140,170,220,.35)';ctx.font=`${Math.max(6,sz*.024)}px monospace`;ctx.textAlign='left';ctx.textBaseline='middle';ctx.fillText(`x${cnt}`,cx+r+3,cy);}
       }
-      const pulse=1+.12*Math.sin(t*2.8);
-      const ng=ctx.createRadialGradient(cx,cy,0,cx,cy,nucR*2.2*pulse);
-      ng.addColorStop(0,'rgba(255,255,255,.95)'); ng.addColorStop(.18,color+'ee'); ng.addColorStop(.5,color+'44'); ng.addColorStop(1,'transparent');
-      ctx.fillStyle=ng; ctx.beginPath(); ctx.arc(cx,cy,nucR*2.2*pulse,0,Math.PI*2); ctx.fill();
-      ctx.beginPath(); ctx.arc(cx,cy,nucR,0,Math.PI*2); ctx.fillStyle='#060d1e'; ctx.fill(); ctx.strokeStyle=color; ctx.lineWidth=1.8; ctx.stroke();
+      const pulse=1+.11*Math.sin(t*2.8);
+      const ng=ctx.createRadialGradient(cx,cy,0,cx,cy,nucR*2.1*pulse);
+      ng.addColorStop(0,'rgba(255,255,255,.95)');ng.addColorStop(.18,color+'ee');ng.addColorStop(.5,color+'44');ng.addColorStop(1,'transparent');
+      ctx.fillStyle=ng;ctx.beginPath();ctx.arc(cx,cy,nucR*2.1*pulse,0,Math.PI*2);ctx.fill();
+      ctx.beginPath();ctx.arc(cx,cy,nucR,0,Math.PI*2);ctx.fillStyle='#060d1e';ctx.fill();ctx.strokeStyle=color;ctx.lineWidth=1.6;ctx.stroke();
       const dots=Math.min(num,7);
-      for(let i=0;i<dots;i++){const a=(2*Math.PI*i/dots)+t*.5;ctx.fillStyle=i%2===0?'#ff5555':'#5588ff';ctx.beginPath();ctx.arc(cx+nucR*.52*Math.cos(a),cy+nucR*.52*Math.sin(a),1.9,0,Math.PI*2);ctx.fill();}
-      const fs=sym.length>2?9:sym.length===2?11:13;
-      ctx.font=`bold ${fs}px monospace`; ctx.fillStyle='white'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(sym,cx,cy);
+      for(let i=0;i<dots;i++){const a=(2*Math.PI*i/dots)+t*.5;ctx.fillStyle=i%2===0?'#ff5555':'#5588ff';ctx.beginPath();ctx.arc(cx+nucR*.52*Math.cos(a),cy+nucR*.52*Math.sin(a),Math.max(1.4,nucR*.14),0,Math.PI*2);ctx.fill();}
+      const fs=sym.length>2?Math.max(7,nucR*.55):sym.length===2?Math.max(9,nucR*.7):Math.max(10,nucR*.85);
+      ctx.font=`bold ${fs}px monospace`;ctx.fillStyle='white';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(sym,cx,cy);
       rafRef.current=requestAnimationFrame(frame);
     }
     rafRef.current=requestAnimationFrame(frame);
     return()=>{if(rafRef.current)cancelAnimationFrame(rafRef.current);last=null;};
-  },[num]);
-
-  return <canvas ref={ref} style={{display:'block',borderRadius:'8px',margin:'0 auto'}} />;
+  },[num,sz]);
+  return <canvas ref={ref} style={{display:'block',borderRadius:'8px'}} />;
 }
 
 // ── Cell ─────────────────────────────────────────
-function Cell({ el, onClick, colorMode, cw=43, ch=52 }) {
-  const [n,sym,,cat,,mass] = el;
-  const baseColor = CATS[cat].c;
-  const baseBg    = CATS[cat].b;
-  let cellColor = baseColor, cellBg = baseBg;
-  if (colorMode === 'en') {
-    cellColor = enColor(EN_DATA[n]);
-    cellBg = cellColor + '14';
-  } else if (colorMode === 'cosmic') {
-    const oi = ORIGIN[n];
-    cellColor = ORIGIN_INFO[oi].c;
-    cellBg = cellColor + '18';
-  }
-  const massStr = mass>=100 ? mass.toFixed(1) : mass.toFixed(2);
-  const state = STATES[n];
-  const isSyn = SYNTHETIC.has(n);
+function Cell({ el, onClick, colorMode, cw, ch }) {
+  const [n,sym,,cat,,mass]=el;
+  const baseC=CATS[cat].c, baseBg=CATS[cat].b;
+  let cc=baseC,bg=baseBg;
+  if(colorMode==='en'){cc=enColor(EN_DATA[n]);bg=cc+'12';}
+  else if(colorMode==='cosmic'){cc=ORIGIN_INFO[ORIGIN[n]].c;bg=cc+'15';}
+  const massStr=mass>=100?mass.toFixed(1):mass.toFixed(2);
+  const state=STATES[n]; const isSyn=SYNTHETIC.has(n);
   return (
     <div className="ecell" onClick={()=>onClick(el)}
-      style={{width:cw,height:ch,background:cellBg,'--cc':cellColor,
-        borderStyle:state==='gas'?'dashed':state==='liquid'?'solid':'solid',
+      style={{width:cw,height:ch,background:bg,'--cc':cc,
+        borderStyle:state==='gas'?'dashed':'solid',
         borderWidth:state==='liquid'?2:1,
         position:'relative'}}>
       <span className="enum">{n}</span>
-      <span className="esym" style={{color:cellColor}}>{sym}</span>
-      <span className="emass">{massStr}</span>
-      {isSyn && <span style={{position:'absolute',top:1,right:2,fontSize:6,opacity:.55,color:cellColor}}>⚗</span>}
-      {state==='liquid' && <span style={{position:'absolute',bottom:1,right:2,fontSize:5,color:'#34d399'}}>liq</span>}
-      {state==='gas' && <span style={{position:'absolute',bottom:1,right:2,fontSize:5,color:'#60a5fa'}}>gas</span>}
+      <span className="esym" style={{color:cc,fontSize:Math.max(10,cw*0.34)}}>{sym}</span>
+      <span className="emass" style={{fontSize:Math.max(5,cw*0.14)}}>{massStr}</span>
+      {isSyn&&<span style={{position:'absolute',top:1,right:2,fontSize:Math.max(5,cw*.13),opacity:.5,color:cc}}>⚗</span>}
     </div>
   );
 }
 
 
-// ── Nav helpers ───────────────────────────────────
-function navAxisLabel(el, dir, view) {
-  const [, , , , , , trow, tcol] = el;
-  if (view === 'janet') {
-    const p = JANET_POS[el[0]];
-    if (!p) return '';
-    if (dir === 'left' || dir === 'right') {
-      const col = p[1];
-      const blk = col<=14?'f-block':col<=24?'d-block':col<=30?'p-block':'s-block';
-      return `Janet row ${p[0]} · ${blk}`;
-    }
-    const col = p[1];
-    const blk = col<=14?'f-block':col<=24?'d-block':col<=30?'p-block':'s-block';
-    return `Janet col ${p[1]} · ${blk}`;
-  }
-  // Standard / Dufour use standard positions
-  if (dir === 'up' || dir === 'down') {
-    const gNum = tcol;
-    const gLabel = gNum <= 2 ? `Group ${gNum}` : gNum >= 13 ? `Group ${gNum}` : `Group ${gNum} (transition)`;
-    return `same group · ${gLabel}`;
-  }
-  const period = trow > 7 ? (trow === 8 ? 6 : 7) : trow;
-  return `same period · Period ${period}`;
+function getOxStates(n){
+  const OX={1:'+1,-1',2:'0',3:'+1',4:'+2',5:'+3,-3',6:'+4,-4',7:'+5,+3,-3',8:'-2',9:'-1',10:'0',11:'+1',12:'+2',13:'+3',14:'+4,-4',15:'+5,+3,-3',16:'+6,+4,-2',17:'+7,-1',18:'0',19:'+1',20:'+2',21:'+3',22:'+4,+3,+2',23:'+5,+4,+3',24:'+6,+3,+2',25:'+7,+4,+2',26:'+3,+2',27:'+3,+2',28:'+2',29:'+2,+1',30:'+2',31:'+3',32:'+4,+2',33:'+5,+3,-3',34:'+6,-2',35:'+5,-1',36:'0',37:'+1',38:'+2',39:'+3',40:'+4',41:'+5,+3',42:'+6,+4,+2',43:'+7,+4',44:'+4,+3',45:'+3',46:'+4,+2',47:'+1',48:'+2',49:'+3',50:'+4,+2',51:'+5,+3,-3',52:'+6,-2',53:'+7,-1',54:'0',55:'+1',56:'+2',79:'+3,+1',80:'+2,+1',82:'+4,+2',83:'+3',92:'+6,+4',94:'+4,+3'};
+  return OX[n]||(n>86?'+3,+4':'various');
 }
 
 // ── NavCompass ────────────────────────────────────
 function NavCompass({ el, view, onNavigate }) {
-  const [, sym, , cat, , , trow, tcol] = el;
-  const color = CATS[cat].c;
-
-  const DIRS = [
-    { d: 'up',    arrow: '↑', ga: 'up'    },
-    { d: 'left',  arrow: '←', ga: 'left'  },
-    { d: 'right', arrow: '→', ga: 'right' },
-    { d: 'down',  arrow: '↓', ga: 'down'  },
-  ];
-
-  const neighbors = {};
-  DIRS.forEach(({ d }) => { neighbors[d] = getNeighbor(el, d, view); });
-
-  const btnStyle = (nc) => ({
-    border: `1px solid ${nc}55`,
-    color: nc,
-    background: nc + '0e',
-    borderRadius: 6,
-    cursor: 'pointer',
-    fontFamily: 'monospace',
-    padding: '4px 7px',
-    transition: 'opacity .1s, background .1s',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    gap: 2,
-    minWidth: 58,
-  });
-
+  const [,sym,,cat,,,trow,tcol]=el;
+  const color=CATS[cat].c;
+  const nb={};
+  ['up','left','right','down'].forEach(d=>{nb[d]=getNeighbor(el,d,view);});
+  const bs=(nc)=>({border:`1px solid ${nc}40`,color:nc,background:nc+'0c',borderRadius:5,
+    cursor:'pointer',fontFamily:'monospace',padding:'3px 7px',
+    display:'flex',flexDirection:'column',alignItems:'center',gap:1,minWidth:54,transition:'.1s'});
   return (
-    <div style={{
-      display: 'grid',
-      gridTemplateColumns: '1fr auto 1fr',
-      gridTemplateRows: 'auto auto auto',
-      gap: 4,
-      marginBottom: 12,
-    }}>
-      {/* Row 1: up arrow (center) */}
-      <div />
-      {neighbors.up ? (
-        <button style={btnStyle(CATS[neighbors.up[3]].c)} onClick={() => onNavigate(neighbors.up)}>
-          <span style={{ fontSize: 11, fontWeight: 'bold' }}>
-            ↑ {neighbors.up[1]}
-          </span>
-          <span style={{ fontSize: 7, opacity: .5, letterSpacing: '.03em', textAlign: 'center' }}>
-            {navAxisLabel(el, 'up', view)}
-          </span>
-        </button>
-      ) : <div />}
-      <div />
-
-      {/* Row 2: left / current / right */}
-      {neighbors.left ? (
-        <button style={{ ...btnStyle(CATS[neighbors.left[3]].c), textAlign: 'right' }} onClick={() => onNavigate(neighbors.left)}>
-          <span style={{ fontSize: 11, fontWeight: 'bold' }}>← {neighbors.left[1]}</span>
-          <span style={{ fontSize: 7, opacity: .5, letterSpacing: '.03em' }}>
-            {navAxisLabel(el, 'left', view)}
-          </span>
-        </button>
-      ) : <div />}
-
-      <div style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        padding: '4px 10px',
-        background: color + '14',
-        border: `1px solid ${color}44`,
-        borderRadius: 6,
-        fontSize: 13,
-        color: color,
-        fontWeight: 'bold',
-        fontFamily: 'monospace',
-      }}>
+    <div style={{display:'grid',gridTemplateColumns:'1fr auto 1fr',gridTemplateRows:'auto auto auto',gap:3}}>
+      <div/>{nb.up?<button style={bs(CATS[nb.up[3]].c)} onClick={()=>onNavigate(nb.up)}>
+        <span style={{fontSize:10,fontWeight:'bold'}}>↑ {nb.up[1]}</span>
+        <span style={{fontSize:6,opacity:.45}}>{navAxisLabel(el,'up',view)}</span>
+      </button>:<div/>}<div/>
+      {nb.left?<button style={{...bs(CATS[nb.left[3]].c),textAlign:'right'}} onClick={()=>onNavigate(nb.left)}>
+        <span style={{fontSize:10,fontWeight:'bold'}}>← {nb.left[1]}</span>
+        <span style={{fontSize:6,opacity:.45}}>{navAxisLabel(el,'left',view)}</span>
+      </button>:<div/>}
+      <div style={{display:'flex',alignItems:'center',justifyContent:'center',padding:'3px 9px',
+        background:color+'14',border:`1px solid ${color}44`,borderRadius:5,fontSize:13,color,fontWeight:'bold',fontFamily:'monospace'}}>
         {sym}
       </div>
-
-      {neighbors.right ? (
-        <button style={{ ...btnStyle(CATS[neighbors.right[3]].c), textAlign: 'left' }} onClick={() => onNavigate(neighbors.right)}>
-          <span style={{ fontSize: 11, fontWeight: 'bold' }}>{neighbors.right[1]} →</span>
-          <span style={{ fontSize: 7, opacity: .5, letterSpacing: '.03em' }}>
-            {navAxisLabel(el, 'right', view)}
-          </span>
-        </button>
-      ) : <div />}
-
-      {/* Row 3: down arrow (center) */}
-      <div />
-      {neighbors.down ? (
-        <button style={btnStyle(CATS[neighbors.down[3]].c)} onClick={() => onNavigate(neighbors.down)}>
-          <span style={{ fontSize: 11, fontWeight: 'bold' }}>
-            {neighbors.down[1]} ↓
-          </span>
-          <span style={{ fontSize: 7, opacity: .5, letterSpacing: '.03em', textAlign: 'center' }}>
-            {navAxisLabel(el, 'down', view)}
-          </span>
-        </button>
-      ) : <div />}
-      <div />
+      {nb.right?<button style={{...bs(CATS[nb.right[3]].c),textAlign:'left'}} onClick={()=>onNavigate(nb.right)}>
+        <span style={{fontSize:10,fontWeight:'bold'}}>{nb.right[1]} →</span>
+        <span style={{fontSize:6,opacity:.45}}>{navAxisLabel(el,'right',view)}</span>
+      </button>:<div/>}
+      <div/>{nb.down?<button style={bs(CATS[nb.down[3]].c)} onClick={()=>onNavigate(nb.down)}>
+        <span style={{fontSize:10,fontWeight:'bold'}}>{nb.down[1]} ↓</span>
+        <span style={{fontSize:6,opacity:.45}}>{navAxisLabel(el,'down',view)}</span>
+      </button>:<div/>}<div/>
     </div>
   );
 }
 
 // ── Modal ─────────────────────────────────────────
+// Two-column design: Bohr + shells on left, all stats/info on right.
+// Header row: identity + nav compass side by side.
 function Modal({ el, onClose, onNavigate, view }) {
-  const [num, sym, name, cat, shells, mass, trow, tcol] = el;
-  const { c, l } = CATS[cat];
-  const ed = EDATA[num] || {};
-  const actShells = shells.filter(s => s > 0);
-  const valence = actShells[actShells.length - 1];
-  const neutrons = Math.round(mass) - num;
-  const period = trow > 7 ? (trow === 8 ? 6 : 7) : trow;
-  const group = trow <= 7 ? tcol : 'f-block';
-  const rc = RARITY_COLORS[ed.rarity] || '#888';
-  const state = STATES[num];
-  const sm = STATE_META[state];
-  const isSyn = SYNTHETIC.has(num);
-  const enVal = EN_DATA[num];
-  const enHex = enColor(enVal);
-  const origIdx = ORIGIN[num];
-  const origInfo = ORIGIN_INFO[origIdx];
+  const [num,sym,name,cat,shells,mass,trow,tcol]=el;
+  const {c,l}=CATS[cat];
+  const ed=EDATA[num]||{};
+  const act=shells.filter(s=>s>0);
+  const valence=act[act.length-1];
+  const neutrons=Math.round(mass)-num;
+  const period=trow>7?(trow===8?6:7):trow;
+  const group=trow<=7?tcol:'f-block';
+  const rc=RARITY_COLORS[ed.rarity]||'#888';
+  const sm=STATE_META[STATES[num]];
+  const isSyn=SYNTHETIC.has(num);
+  const enVal=EN_DATA[num];
+  const enHex=enColor(enVal);
+  const origInfo=ORIGIN_INFO[ORIGIN[num]];
+  const CANVAS_SZ=210;
+
+  const divider = <div style={{height:1,background:'rgba(140,170,220,.08)',margin:'10px 0'}}/>;
 
   return (
-    <div className="overlay" onClick={onClose}>
-      <div className="modal" onClick={e => e.stopPropagation()}>
-        <button className="close-btn" onClick={onClose} style={{ color: c }}>✕</button>
+    <div style={{position:'fixed',inset:0,zIndex:100,background:'rgba(2,8,16,.85)',
+      backdropFilter:'blur(8px)',display:'flex',alignItems:'center',justifyContent:'center',
+      animation:'fadeIn .15s ease'}} onClick={onClose}>
+      <div style={{
+        background:'#060e1c',
+        border:`1px solid ${c}33`,
+        borderRadius:14,
+        padding:'16px 18px',
+        width:'min(720px, 96vw)',
+        maxHeight:'92vh',
+        overflowY:'auto',
+        position:'relative',
+        fontFamily:'monospace',
+        scrollbarWidth:'thin',
+        scrollbarColor:`${c}22 transparent`,
+        animation:'popIn .18s cubic-bezier(.34,1.56,.64,1)',
+        boxShadow:`0 0 40px ${c}18, 0 24px 60px rgba(0,0,0,.6)`,
+      }} onClick={e=>e.stopPropagation()}>
 
-        {/* Navigation compass */}
-        <NavCompass el={el} view={view} onNavigate={onNavigate} />
+        {/* Close */}
+        <button onClick={onClose} style={{position:'absolute',top:10,right:12,background:'none',
+          border:'none',color:c,fontSize:17,cursor:'pointer',opacity:.55,fontFamily:'monospace',
+          padding:'2px 7px',borderRadius:4,transition:'.1s'}}
+          onMouseEnter={e=>e.target.style.opacity=1} onMouseLeave={e=>e.target.style.opacity=.55}>✕</button>
 
-        {/* Header */}
-        <div className="modal-hdr">
-          <div className="modal-numbox" style={{ borderColor: c + '60', color: c + '99' }}>{num}</div>
-          <div className="modal-sym-lg" style={{ color: c }}>{sym}</div>
-          <div style={{ flex: 1 }}>
-            <div className="modal-name">{name}</div>
-            <div className="modal-cat" style={{ color: c + 'cc' }}>{l}</div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 5 }}>
-              {ed.rarity && <span className="badge" style={{ background: rc + '1a', borderColor: rc + '55', color: rc }}>◈ {ed.rarity}</span>}
-              {sm && <span className="badge" style={{ background: sm.c + '1a', borderColor: sm.c + '55', color: sm.c }}>{sm.icon} {sm.label}</span>}
-              {isSyn && <span className="badge" style={{ background: '#a78bfa1a', borderColor: '#a78bfa55', color: '#a78bfa' }}>⚗ Lab-synthesized</span>}
-              <span className="badge" style={{ background: origInfo.c + '1a', borderColor: origInfo.c + '55', color: origInfo.c }}>✦ {origInfo.l}</span>
+        {/* ── TOP ROW: identity + compass ──────────── */}
+        <div style={{display:'flex',gap:14,alignItems:'flex-start',marginBottom:10}}>
+          {/* Identity block */}
+          <div style={{flex:1,minWidth:0}}>
+            <div style={{display:'flex',alignItems:'baseline',gap:8,flexWrap:'wrap'}}>
+              <span style={{fontSize:38,fontWeight:'bold',color:c,lineHeight:1}}>{sym}</span>
+              <span style={{fontSize:11,opacity:.35,letterSpacing:'.05em'}}>{num}</span>
+              <span style={{fontSize:13,fontWeight:'bold',color:'#dde6f5'}}>{name}</span>
             </div>
+            <div style={{fontSize:10,color:c,opacity:.75,marginTop:1,letterSpacing:'.04em'}}>{l}</div>
+            <div style={{display:'flex',flexWrap:'wrap',gap:4,marginTop:6}}>
+              {ed.rarity&&<span className="badge" style={{background:rc+'18',borderColor:rc+'44',color:rc}}>◈ {ed.rarity}</span>}
+              {sm&&<span className="badge" style={{background:sm.c+'18',borderColor:sm.c+'44',color:sm.c}}>{sm.icon} {sm.label}</span>}
+              {isSyn&&<span className="badge" style={{background:'#a78bfa18',borderColor:'#a78bfa44',color:'#a78bfa'}}>⚗ Lab-made</span>}
+              <span className="badge" style={{background:origInfo.c+'18',borderColor:origInfo.c+'44',color:origInfo.c}}>✦ {origInfo.l}</span>
+            </div>
+          </div>
+          {/* Nav compass */}
+          <div style={{flexShrink:0}}>
+            <NavCompass el={el} view={view} onNavigate={onNavigate}/>
           </div>
         </div>
 
         {/* Description */}
-        {ed.desc && <div className="elem-desc">{ed.desc}</div>}
+        {ed.desc&&<div style={{fontSize:11,lineHeight:1.65,color:'rgba(190,210,240,.65)',
+          padding:'8px 11px',background:'rgba(255,255,255,.025)',borderRadius:7,
+          borderLeft:`2px solid ${c}30`,marginBottom:12}}>{ed.desc}</div>}
 
-        {/* Bohr model */}
-        <BohrCanvas el={el} />
+        {divider}
 
-        {/* Bohr explainer */}
-        <div className="bohr-explainer">
-          <div className="bohr-explainer-title" style={{ color: c }}>↑ Bohr Atomic Model</div>
-          <div className="bohr-row">
-            <span className="bohr-key">Nucleus</span>
-            <span className="bohr-val">Center sphere — contains <strong style={{ color: '#ff5555' }}>{num} proton{num !== 1 ? 's' : ''}</strong> (+) and ~<strong style={{ color: '#5588ff' }}>{neutrons} neutron{neutrons !== 1 ? 's' : ''}</strong> (neutral). Protons determine the element's identity.</span>
-          </div>
-          <div className="bohr-row">
-            <span className="bohr-key">Shells</span>
-            <span className="bohr-val">{num} electron{num !== 1 ? 's' : ''} (−) orbit in {actShells.length} shell{actShells.length !== 1 ? 's' : ''}: {actShells.map((cnt, i) => `${SHL[i]}(${cnt})`).join(' → ')}. Inner shells fill first.</span>
-          </div>
-          <div className="bohr-row">
-            <span className="bohr-key">Valence</span>
-            <span className="bohr-val">Outermost <strong style={{ color: c }}>{SHL[actShells.length - 1]}-shell has {valence} electron{valence !== 1 ? 's' : ''}</strong> — these drive all chemical bonding and reactivity.</span>
-          </div>
-          <div className="bohr-row">
-            <span className="bohr-key">Note</span>
-            <span className="bohr-val" style={{ opacity: .5 }}>The Bohr model is a classical simplification. Real electrons exist as quantum probability clouds (orbitals), not fixed circular orbits.</span>
-          </div>
-        </div>
+        {/* ── TWO COLUMNS: Bohr | Stats ──────────── */}
+        <div style={{display:'flex',gap:14,alignItems:'flex-start'}}>
 
-        {/* Stats */}
-        <div className="info-grid">
-          {[
-            ['Atomic Mass', `${mass} u`],
-            ['Protons', num],
-            ['Neutrons', `~${neutrons}`],
-            ['Electrons', num],
-            ['Period', period],
-            ['Group', group],
-            ['Electronegativity', enVal != null ? `${enVal} (Pauling)` : 'N/A'],
-            ['Oxidation States', getOxStates(num)],
-            ['Valence e⁻', valence],
-          ].map(([k, v]) => (
-            <div key={k} className="info-item">
-              <span className="info-k">{k}</span>
-              <span className="info-v" style={{ color: c, fontSize: String(v).length > 10 ? 10 : 13 }}>{v}</span>
+          {/* Left: canvas + shells */}
+          <div style={{flexShrink:0,display:'flex',flexDirection:'column',gap:8}}>
+            <BohrCanvas el={el} sz={CANVAS_SZ}/>
+            {/* Shell config badges */}
+            <div style={{display:'flex',flexWrap:'wrap',gap:3,justifyContent:'center'}}>
+              {act.map((cnt,i)=>{
+                const isV=i===act.length-1;
+                return <div key={i} style={{border:`1px solid ${isV?c:'rgba(140,170,220,.2)'}`,borderRadius:4,
+                  padding:'2px 5px',display:'flex',flexDirection:'column',alignItems:'center',
+                  background:isV?c+'15':'rgba(140,170,220,.04)',color:isV?c:'rgba(140,170,220,.45)',fontWeight:isV?'bold':'normal'}}>
+                  <span style={{fontSize:6,opacity:.6}}>{SHL[i]}</span>
+                  <span style={{fontSize:11,fontFamily:'monospace'}}>{cnt}</span>
+                </div>;
+              })}
             </div>
-          ))}
-        </div>
-
-        {/* EN bar */}
-        {enVal != null && (
-          <div style={{ margin: '11px 0' }}>
-            <div className="sec-hdr" style={{ color: c + '66' }}>ELECTRONEGATIVITY (PAULING SCALE)</div>
-            <div style={{ height: 6, background: 'rgba(255,255,255,.06)', borderRadius: 3, position: 'relative', margin: '5px 0 2px' }}>
-              <div style={{ width: `${((enVal - 0.7) / (4.0 - 0.7)) * 100}%`, height: '100%', borderRadius: 3, background: `linear-gradient(90deg,#3b82f6,${enHex})` }} />
-              <div style={{ position: 'absolute', top: -11, left: `${((enVal - 0.7) / (4.0 - 0.7)) * 100}%`, transform: 'translateX(-50%)' }}>
-                <span style={{ fontSize: 9, fontFamily: 'monospace', color: enHex }}>{enVal}</span>
-              </div>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 8, opacity: .32 }}>
-              <span>0.7 (Fr — least)</span><span>3.98 (F — most)</span>
+            {/* Bohr legend */}
+            <div style={{fontSize:9,color:'rgba(140,170,220,.4)',textAlign:'center',lineHeight:1.5}}>
+              <span style={{color:'#ff5555a0'}}>● {num}p</span>
+              {' '}<span style={{color:'#5588ffa0'}}>● ~{neutrons}n</span>
+              {' '}<span style={{color:c+'99'}}>● {num}e⁻</span>
             </div>
           </div>
-        )}
 
-        {/* Cosmic origin */}
-        <div style={{ margin: '10px 0' }}>
-          <div className="sec-hdr" style={{ color: c + '66' }}>COSMIC ORIGIN</div>
-          <div style={{ fontSize: 10, lineHeight: 1.6, padding: '7px 10px', background: 'rgba(255,255,255,.025)', borderRadius: 6, borderLeft: `3px solid ${origInfo.c}` }}>
-            <span style={{ color: origInfo.c, fontWeight: 'bold' }}>{origInfo.l}</span>
-            <span style={{ color: 'rgba(190,210,240,.6)', marginLeft: 8 }}>{origInfo.d}</span>
-          </div>
-        </div>
+          {/* Right: all the data */}
+          <div style={{flex:1,minWidth:0,display:'flex',flexDirection:'column',gap:10}}>
 
-        {/* Facts */}
-        {ed.facts && ed.facts.length > 0 && (
-          <div style={{ margin: '11px 0' }}>
-            <div className="sec-hdr" style={{ color: c + '66' }}>NOTABLE FACTS</div>
-            {ed.facts.map((f, i) => (
-              <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'flex-start', marginBottom: 5 }}>
-                <span style={{ color: c, fontSize: 10, flexShrink: 0, marginTop: 2 }}>▸</span>
-                <span style={{ fontSize: 11, lineHeight: 1.6, color: 'rgba(190,210,240,.63)' }}>{f}</span>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Locations */}
-        {ed.loc && (
-          <div style={{ margin: '10px 0' }}>
-            <div className="sec-hdr" style={{ color: c + '66' }}>WHERE IT'S FOUND</div>
-            <div style={{ fontSize: 11, lineHeight: 1.6, color: 'rgba(190,210,240,.58)', padding: '8px 11px', background: 'rgba(255,255,255,.025)', borderRadius: 7, borderLeft: `3px solid ${c}44`, display: 'flex' }}>
-              <span style={{ opacity: .4, marginRight: 6 }}>⊕</span>{ed.loc}
-            </div>
-          </div>
-        )}
-
-        {/* Shells */}
-        <div style={{ marginTop: 11 }}>
-          <div className="sec-hdr" style={{ color: c + '66' }}>ELECTRON CONFIGURATION</div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
-            {actShells.map((cnt, i) => {
-              const isVal = i === actShells.length - 1;
-              return (
-                <div key={i} style={{
-                  border: `1px solid ${isVal ? c : 'rgba(140,170,220,.2)'}`,
-                  borderRadius: 5, padding: '4px 7px',
-                  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1,
-                  background: isVal ? c + '18' : 'rgba(140,170,220,.04)',
-                  color: isVal ? c : 'rgba(140,170,220,.48)',
-                  fontWeight: isVal ? 'bold' : 'normal',
-                }}>
-                  <span style={{ fontSize: 7, opacity: .62, fontFamily: 'monospace' }}>{SHL[i]}</span>
-                  <span style={{ fontSize: 13, fontWeight: 'bold', fontFamily: 'monospace' }}>{cnt}</span>
+            {/* Stats 3×3 grid */}
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:4}}>
+              {[['Mass',`${mass} u`],['Period',period],['Group',group],
+                ['Protons',num],['Neutrons',`~${neutrons}`],['Electrons',num],
+                ['Valence e⁻',valence],['Ox. States',getOxStates(num)],
+                ['EN',enVal!=null?enVal:'N/A']
+              ].map(([k,v])=>(
+                <div key={k} style={{background:'rgba(255,255,255,.04)',borderRadius:5,padding:'5px 7px'}}>
+                  <div style={{fontSize:7,opacity:.3,letterSpacing:'.04em',marginBottom:1}}>{k}</div>
+                  <div style={{fontSize:String(v).length>6?10:12,fontWeight:'bold',color:c,fontFamily:'monospace'}}>{v}</div>
                 </div>
-              );
-            })}
-          </div>
-          <div style={{ fontSize: 10, marginTop: 8, color: c, opacity: .75 }}>
-            ⬡ {valence} valence electron{valence !== 1 ? 's' : ''} in {SHL[actShells.length - 1]}-shell
+              ))}
+            </div>
+
+            {/* EN bar */}
+            {enVal!=null&&(
+              <div>
+                <div style={{fontSize:7,opacity:.28,letterSpacing:'.1em',marginBottom:4}}>ELECTRONEGATIVITY</div>
+                <div style={{position:'relative',height:7,background:'rgba(255,255,255,.06)',borderRadius:4}}>
+                  <div style={{width:`${((enVal-.7)/(4.-.7))*100}%`,height:'100%',borderRadius:4,
+                    background:`linear-gradient(90deg,#3b82f6,${enHex})`}}/>
+                  <div style={{position:'absolute',top:-9,left:`${((enVal-.7)/(4.-.7))*100}%`,
+                    transform:'translateX(-50%)',fontSize:8,color:enHex,fontFamily:'monospace'}}>{enVal}</div>
+                </div>
+                <div style={{display:'flex',justifyContent:'space-between',fontSize:7,opacity:.28,marginTop:2}}>
+                  <span>0.7 Fr</span><span>Pauling scale</span><span>3.98 F</span>
+                </div>
+              </div>
+            )}
+
+            {/* Cosmic origin */}
+            <div style={{fontSize:10,padding:'6px 9px',background:'rgba(255,255,255,.025)',
+              borderRadius:6,borderLeft:`3px solid ${origInfo.c}`,lineHeight:1.55}}>
+              <span style={{color:origInfo.c,fontWeight:'bold',fontSize:9}}>{origInfo.l}</span>
+              <span style={{color:'rgba(190,210,240,.55)',marginLeft:6,fontSize:9}}>{origInfo.d}</span>
+            </div>
+
+            {/* Bohr explainer (compact, in right col) */}
+            <div style={{background:'rgba(255,255,255,.02)',borderRadius:6,padding:'8px 10px',
+              border:'1px solid rgba(100,140,200,.1)',fontSize:10,lineHeight:1.55}}>
+              <div style={{color:c,fontSize:8,letterSpacing:'.1em',marginBottom:5,opacity:.8}}>⬡ BOHR MODEL</div>
+              <div style={{color:'rgba(190,210,240,.55)',marginBottom:3}}>
+                <strong style={{color:'#ff5555a0'}}>Nucleus</strong> — {num} proton{num!==1?'s':''} (+) and ~{neutrons} neutron{neutrons!==1?'s':''}, defines element identity.
+              </div>
+              <div style={{color:'rgba(190,210,240,.55)',marginBottom:3}}>
+                <strong style={{color:c+'aa'}}>Valence</strong> — outer {SHL[act.length-1]}-shell with <strong style={{color:c}}>{valence}e⁻</strong> controls all bonding.
+              </div>
+              <div style={{color:'rgba(190,210,240,.35)',fontSize:9}}>
+                Bohr is a classical model. Actual electrons follow quantum mechanics (orbital clouds, not fixed orbits).
+              </div>
+            </div>
+
           </div>
         </div>
+
+        {divider}
+
+        {/* ── FACTS ──────────────────────────────── */}
+        {ed.facts&&ed.facts.length>0&&(
+          <>
+            <div style={{fontSize:7,opacity:.28,letterSpacing:'.12em',marginBottom:6}}>NOTABLE FACTS</div>
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'4px 12px',marginBottom:12}}>
+              {ed.facts.map((f,i)=>(
+                <div key={i} style={{display:'flex',gap:6,alignItems:'flex-start'}}>
+                  <span style={{color:c,fontSize:9,flexShrink:0,marginTop:2}}>▸</span>
+                  <span style={{fontSize:10,lineHeight:1.55,color:'rgba(190,210,240,.62)'}}>{f}</span>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+
+        {/* ── LOCATION ───────────────────────────── */}
+        {ed.loc&&(
+          <div style={{fontSize:10,lineHeight:1.6,color:'rgba(190,210,240,.55)',padding:'7px 11px',
+            background:'rgba(255,255,255,.025)',borderRadius:7,borderLeft:`3px solid ${c}35`,display:'flex',gap:7}}>
+            <span style={{opacity:.4,flexShrink:0}}>⊕</span>{ed.loc}
+          </div>
+        )}
+
       </div>
     </div>
   );
 }
 
-function getOxStates(n) {
-  const OX = { 1:'+1,-1',2:'0',3:'+1',4:'+2',5:'+3,-3',6:'+4,-4',7:'+5,+3,-3',8:'-2',9:'-1',10:'0',11:'+1',12:'+2',13:'+3',14:'+4,-4',15:'+5,+3,-3',16:'+6,+4,-2',17:'+7,-1',18:'0',19:'+1',20:'+2',21:'+3',22:'+4,+3,+2',23:'+5,+4,+3',24:'+6,+3,+2',25:'+7,+4,+2',26:'+3,+2',27:'+3,+2',28:'+2',29:'+2,+1',30:'+2',31:'+3',32:'+4,+2',33:'+5,+3,-3',34:'+6,-2',35:'+5,-1',36:'0',37:'+1',38:'+2',39:'+3',40:'+4',41:'+5,+3',42:'+6,+4,+2',43:'+7,+4',44:'+4,+3',45:'+3',46:'+4,+2',47:'+1',48:'+2',49:'+3',50:'+4,+2',51:'+5,+3,-3',52:'+6,-2',53:'+7,-1',54:'0',55:'+1',56:'+2',79:'+3,+1',80:'+2,+1',82:'+4,+2',83:'+3',92:'+6,+4',94:'+4,+3' };
-  return OX[n] || (n > 86 ? '+3,+4' : 'various');
-}
-
-// ── PeriodicTable ─────────────────────────────────
+// ── PeriodicTable (auto-scaling) ──────────────────
 function PeriodicTable() {
-  const [sel, setSel] = useState(null);
-  const [view, setView] = useState('standard');
-  const [colorMode, setColorMode] = useState('category');
+  const [sel,setSel]=useState(null);
+  const [view,setView]=useState('standard');
+  const [colorMode,setColorMode]=useState('category');
+  const [cw,setCw]=useState(43);
+  const [legendOpen,setLegendOpen]=useState(false);
 
-  const CW_STD = 43, CH_STD = 52;
-  const CW_JAN = 31, CH_JAN = 44;
+  // Auto-scale cell width to viewport
+  useEffect(()=>{
+    function calc(){
+      const avail=window.innerWidth-28;
+      const w=Math.min(54,Math.max(30,Math.floor(avail/18)-2));
+      setCw(w);
+    }
+    calc();
+    window.addEventListener('resize',calc);
+    return()=>window.removeEventListener('resize',calc);
+  },[]);
 
-  const mainEls = EL.filter(e => e[6] <= 7);
-  const lantEls = EL.filter(e => e[6] === 8);
-  const actEls  = EL.filter(e => e[6] === 9);
+  const ch=Math.round(cw*1.21);
+  const cwJ=Math.min(34,Math.max(22,Math.floor((window.innerWidth-28)/33)-1));
+  const chJ=Math.round(cwJ*1.28);
+  const mainEls=EL.filter(e=>e[6]<=7);
+  const lantEls=EL.filter(e=>e[6]===8);
+  const actEls =EL.filter(e=>e[6]===9);
 
-  const VIEW_TABS  = [{ id:'standard', l:'Standard (IUPAC)' }, { id:'janet', l:'Janet / Left-Step' }, { id:'dufour', l:'Dufour Spiral' }];
-  const COLOR_TABS = [{ id:'category', l:'Category' }, { id:'cosmic', l:'Cosmic Origin' }, { id:'en', l:'Electronegativity' }];
+  const VIEWS=[{id:'standard',l:'Standard'},{id:'janet',l:'Left-Step'},{id:'dufour',l:'Spiral'}];
+  const COLORS=[{id:'category',l:'Category'},{id:'cosmic',l:'Cosmic Origin'},{id:'en',l:'Electronegativity'}];
 
-  function getDufourPos(el, W, H) {
-    const [,,,, shells] = el;
-    const act = shells.filter(c => c > 0);
-    const period = act.length;
-    const valence = act[act.length - 1];
-    const a = (valence / 8) * 2 * Math.PI - Math.PI / 2;
-    const r = 28 + period * 62;
-    return { x: W/2 + r * Math.cos(a), y: H/2 + r * Math.sin(a) };
+  function getDufourPos(el,W,H){
+    const act=el[4].filter(c=>c>0); const period=act.length; const v=act[act.length-1];
+    const a=(v/8)*2*Math.PI-Math.PI/2; const r=26+period*60;
+    return{x:W/2+r*Math.cos(a),y:H/2+r*Math.sin(a)};
   }
 
-  const CSS = `
-    * { box-sizing: border-box; }
-    .ecell { border:1px solid var(--cc,#334); border-radius:4px;
-      display:flex; flex-direction:column; align-items:center; justify-content:center;
-      cursor:pointer; user-select:none; position:relative;
-      transition:transform .12s,box-shadow .12s,border-color .12s; }
-    .ecell:hover { transform:scale(1.22); z-index:10;
-      box-shadow:0 0 14px var(--cc,#38bdf8); border-color:var(--cc,#38bdf8); }
-    .enum  { font-size:7px; opacity:.4; line-height:1; margin-top:2px; }
-    .esym  { font-size:15px; font-weight:bold; line-height:1.1; }
-    .emass { font-size:6px; opacity:.35; line-height:1; margin-bottom:2px; }
-    .overlay { position:fixed; inset:0; z-index:100; background:rgba(2,8,16,.88);
-      backdrop-filter:blur(8px); display:flex; align-items:center; justify-content:center;
-      animation:fadeIn .15s ease; }
-    @keyframes fadeIn { from{opacity:0}to{opacity:1} }
-    .modal { background:#060e1c; border:1px solid rgba(100,140,200,.22);
-      border-radius:14px; padding:20px; max-width:420px; width:94vw;
-      animation:popIn .18s cubic-bezier(.34,1.56,.64,1);
-      max-height:90vh; overflow-y:auto; position:relative;
-      scrollbar-width:thin; scrollbar-color:rgba(100,140,200,.15) transparent; }
-    @keyframes popIn { from{transform:scale(.86);opacity:0}to{transform:scale(1);opacity:1} }
-    .close-btn { position:absolute; top:10px; right:12px; background:none; border:none;
-      font-size:18px; cursor:pointer; opacity:.6; padding:4px 8px; font-family:monospace; }
-    .close-btn:hover { opacity:1; }
-    .modal-hdr { display:flex; align-items:flex-start; gap:12px; margin-bottom:11px; }
-    .modal-numbox { font-size:10px; border:1px solid; border-radius:4px; padding:2px 5px;
-      min-width:26px; text-align:center; flex-shrink:0; margin-top:4px; font-family:monospace; }
-    .modal-sym-lg { font-size:40px; font-weight:bold; line-height:1; flex-shrink:0; font-family:monospace; }
-    .modal-name { font-size:15px; font-weight:bold; color:#dde6f5; }
-    .modal-cat { font-size:10px; letter-spacing:.05em; margin-top:1px; }
-    .badge { display:inline-block; font-size:9px; letter-spacing:.06em;
-      border:1px solid; border-radius:10px; padding:2px 7px; font-family:monospace; }
-    .elem-desc { font-size:11px; line-height:1.7; color:rgba(190,210,240,.68);
-      margin-bottom:11px; padding:9px 11px; background:rgba(255,255,255,.025);
-      border-radius:7px; border-left:2px solid rgba(100,140,200,.18); }
-    .bohr-explainer { background:rgba(255,255,255,.02); border-radius:7px; padding:9px 11px;
-      margin:10px 0; border:1px solid rgba(100,140,200,.1); }
-    .bohr-explainer-title { font-size:9px; letter-spacing:.1em; margin-bottom:7px; font-family:monospace; }
-    .bohr-row { display:flex; gap:8px; margin-bottom:5px; align-items:flex-start; }
-    .bohr-key { font-size:8px; min-width:52px; opacity:.4; flex-shrink:0; padding-top:1px;
-      font-family:monospace; letter-spacing:.04em; }
-    .bohr-val { font-size:10px; line-height:1.55; color:rgba(190,210,240,.65); }
-    .info-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:5px; margin:11px 0; }
-    .info-item { background:rgba(255,255,255,.04); border-radius:5px; padding:6px 8px;
-      display:flex; flex-direction:column; gap:2px; }
-    .info-k { font-size:7px; opacity:.3; letter-spacing:.05em; }
-    .info-v { font-weight:bold; font-family:monospace; }
-    .sec-hdr { font-size:8px; letter-spacing:.14em; margin-bottom:6px; font-family:monospace; }
-    .placeholder { border:1px dashed rgba(140,170,220,.14); border-radius:4px; font-size:7px;
-      display:flex; align-items:center; justify-content:center;
-      color:rgba(140,170,220,.22); font-family:monospace; }
-    .tab-btn { background:rgba(255,255,255,.04); border:1px solid rgba(140,170,220,.15);
-      border-radius:5px; color:rgba(190,210,240,.5); cursor:pointer; font-family:monospace;
-      font-size:9px; padding:4px 10px; letter-spacing:.04em; transition:.1s; }
-    .tab-btn:hover { opacity:.8; }
-    .tab-btn.active { border-color:currentColor; color:#dde6f5; background:rgba(255,255,255,.08); }
-    .dufour-node { position:absolute; display:flex; align-items:center; justify-content:center;
-      border-radius:50%; cursor:pointer; font-family:monospace; transition:.15s; }
-    .dufour-node:hover { transform:scale(1.35); z-index:10; }
+  const CSS=`
+    *{box-sizing:border-box;}
+    @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+    @keyframes popIn{from{transform:scale(.88);opacity:0}to{transform:scale(1);opacity:1}}
+    .ecell{border:1px solid var(--cc,#334);border-radius:4px;
+      display:flex;flex-direction:column;align-items:center;justify-content:center;
+      cursor:pointer;user-select:none;position:relative;
+      transition:transform .1s,box-shadow .1s,border-color .1s;}
+    .ecell:hover{transform:scale(1.24);z-index:10;
+      box-shadow:0 0 12px var(--cc),0 0 3px var(--cc);border-color:var(--cc);}
+    .enum{opacity:.38;line-height:1;margin-top:2px;}
+    .esym{font-weight:bold;line-height:1.1;}
+    .emass{opacity:.3;line-height:1;margin-bottom:2px;}
+    .badge{display:inline-block;font-size:8.5px;letter-spacing:.05em;
+      border:1px solid;border-radius:10px;padding:1px 6px;font-family:monospace;}
+    .tab-btn{background:rgba(255,255,255,.04);border:1px solid rgba(140,170,220,.14);
+      border-radius:4px;color:rgba(190,210,240,.45);cursor:pointer;font-family:monospace;
+      font-size:8.5px;padding:3px 9px;letter-spacing:.04em;transition:.1s;white-space:nowrap;}
+    .tab-btn:hover{opacity:.8;}
+    .tab-btn.active{border-color:currentColor;color:#e2ecff;background:rgba(255,255,255,.07);}
+    .pholder{border:1px dashed rgba(140,170,220,.12);border-radius:4px;font-size:7px;
+      display:flex;align-items:center;justify-content:center;color:rgba(140,170,220,.2);font-family:monospace;}
+    .dnode{position:absolute;display:flex;align-items:center;justify-content:center;
+      border-radius:50%;cursor:pointer;font-family:monospace;transition:.12s;}
+    .dnode:hover{transform:scale(1.35);z-index:10;}
   `;
 
+  const fblockIndent = 2*(cw+2);
+
   return (
-    <div style={{ background:'#020810', minHeight:'100vh', color:'#dde6f5', fontFamily:'monospace', padding:'12px 16px', overflowX:'auto' }}>
+    <div style={{background:'#020810',minHeight:'100vh',color:'#dde6f5',fontFamily:'monospace',padding:'10px 14px',overflowX:'auto'}}>
       <style>{CSS}</style>
 
-      <div style={{ fontSize:13, letterSpacing:'.18em', opacity:.4, marginBottom:2 }}>⬡ PERIODIC TABLE OF THE ELEMENTS</div>
-      <div style={{ fontSize:8, opacity:.18, letterSpacing:'.08em', marginBottom:10 }}>118 ELEMENTS · BOHR MODEL · FACTS · RARITY · LOCATION · NAVIGATION</div>
-
-      {/* Controls */}
-      <div style={{ display:'flex', gap:16, flexWrap:'wrap', marginBottom:10, alignItems:'flex-start' }}>
-        <div>
-          <div style={{ fontSize:7, opacity:.28, letterSpacing:'.1em', marginBottom:4 }}>TABLE LAYOUT</div>
-          <div style={{ display:'flex', gap:4, flexWrap:'wrap' }}>
-            {VIEW_TABS.map(t => (
-              <button key={t.id} className={`tab-btn ${view===t.id?'active':''}`}
-                style={{ color: view===t.id?'#38bdf8':undefined }} onClick={()=>setView(t.id)}>{t.l}</button>
-            ))}
-          </div>
+      {/* ── TOOLBAR ─────────────────────────────── */}
+      <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:10,flexWrap:'wrap'}}>
+        <span style={{fontSize:11,letterSpacing:'.18em',opacity:.3,marginRight:4,whiteSpace:'nowrap'}}>⬡ PERIODIC TABLE</span>
+        <div style={{width:1,height:14,background:'rgba(140,170,220,.15)',flexShrink:0}}/>
+        <div style={{display:'flex',gap:3,flexWrap:'wrap'}}>
+          {VIEWS.map(t=>(
+            <button key={t.id} className={`tab-btn${view===t.id?' active':''}`}
+              style={{color:view===t.id?'#38bdf8':undefined}} onClick={()=>setView(t.id)}>{t.l}</button>
+          ))}
         </div>
-        <div>
-          <div style={{ fontSize:7, opacity:.28, letterSpacing:'.1em', marginBottom:4 }}>COLOR CODING</div>
-          <div style={{ display:'flex', gap:4, flexWrap:'wrap' }}>
-            {COLOR_TABS.map(t => (
-              <button key={t.id} className={`tab-btn ${colorMode===t.id?'active':''}`}
-                style={{ color: colorMode===t.id?'#f97316':undefined }} onClick={()=>setColorMode(t.id)}>{t.l}</button>
-            ))}
-          </div>
+        <div style={{width:1,height:14,background:'rgba(140,170,220,.15)',flexShrink:0}}/>
+        <div style={{display:'flex',gap:3,flexWrap:'wrap'}}>
+          {COLORS.map(t=>(
+            <button key={t.id} className={`tab-btn${colorMode===t.id?' active':''}`}
+              style={{color:colorMode===t.id?'#f97316':undefined}} onClick={()=>setColorMode(t.id)}>{t.l}</button>
+          ))}
         </div>
+        <button className="tab-btn" style={{marginLeft:'auto'}} onClick={()=>setLegendOpen(x=>!x)}>
+          {legendOpen?'▲':'▼'} Legend
+        </button>
       </div>
 
-      {/* ── STANDARD ── */}
-      {view === 'standard' && (
+      {/* ── STANDARD TABLE ─────────────────────── */}
+      {view==='standard'&&(
         <>
-          <div style={{ position:'relative', width:18*(CW_STD+2)+'px', height:7*(CH_STD+2)+'px' }}>
-            {mainEls.map(e => (
-              <div key={e[0]} style={{ position:'absolute', left:(e[7]-1)*(CW_STD+2)+'px', top:(e[6]-1)*(CH_STD+2)+'px' }}>
-                <Cell el={e} onClick={setSel} colorMode={colorMode} cw={CW_STD} ch={CH_STD} />
+          <div style={{position:'relative',width:18*(cw+2)+'px',height:7*(ch+2)+'px'}}>
+            {mainEls.map(e=>(
+              <div key={e[0]} style={{position:'absolute',left:(e[7]-1)*(cw+2)+'px',top:(e[6]-1)*(ch+2)+'px'}}>
+                <Cell el={e} onClick={setSel} colorMode={colorMode} cw={cw} ch={ch}/>
               </div>
             ))}
-            <div style={{ position:'absolute', left:2*(CW_STD+2)+'px', top:5*(CH_STD+2)+'px' }}>
-              <div className="placeholder" style={{ width:CW_STD, height:CH_STD }}>57–71</div>
-            </div>
-            <div style={{ position:'absolute', left:2*(CW_STD+2)+'px', top:6*(CH_STD+2)+'px' }}>
-              <div className="placeholder" style={{ width:CW_STD, height:CH_STD }}>89–103</div>
+            <div style={{position:'absolute',left:fblockIndent+'px',top:5*(ch+2)+'px'}}>
+              <div className="pholder" style={{width:cw,height:ch}}>57–71</div></div>
+            <div style={{position:'absolute',left:fblockIndent+'px',top:6*(ch+2)+'px'}}>
+              <div className="pholder" style={{width:cw,height:ch}}>89–103</div></div>
+          </div>
+          <div style={{marginTop:8}}>
+            <div style={{fontSize:6.5,opacity:.18,letterSpacing:'.08em',marginBottom:2,paddingLeft:fblockIndent+'px'}}>LANTHANIDES</div>
+            <div style={{display:'flex',gap:2,paddingLeft:fblockIndent+'px'}}>
+              {lantEls.map(e=><Cell key={e[0]} el={e} onClick={setSel} colorMode={colorMode} cw={cw} ch={ch}/>)}
             </div>
           </div>
-          <div style={{ marginTop:12 }}>
-            <div style={{ fontSize:7, opacity:.2, letterSpacing:'.08em', marginBottom:2, paddingLeft:2*(CW_STD+2)+'px' }}>LANTHANIDES (f-block, period 6)</div>
-            <div style={{ display:'flex', gap:2, paddingLeft:2*(CW_STD+2)+'px' }}>
-              {lantEls.map(e => <Cell key={e[0]} el={e} onClick={setSel} colorMode={colorMode} cw={CW_STD} ch={CH_STD} />)}
-            </div>
-          </div>
-          <div style={{ marginTop:2 }}>
-            <div style={{ fontSize:7, opacity:.2, letterSpacing:'.08em', marginBottom:2, paddingLeft:2*(CW_STD+2)+'px' }}>ACTINIDES (f-block, period 7)</div>
-            <div style={{ display:'flex', gap:2, paddingLeft:2*(CW_STD+2)+'px' }}>
-              {actEls.map(e => <Cell key={e[0]} el={e} onClick={setSel} colorMode={colorMode} cw={CW_STD} ch={CH_STD} />)}
+          <div style={{marginTop:2}}>
+            <div style={{fontSize:6.5,opacity:.18,letterSpacing:'.08em',marginBottom:2,paddingLeft:fblockIndent+'px'}}>ACTINIDES</div>
+            <div style={{display:'flex',gap:2,paddingLeft:fblockIndent+'px'}}>
+              {actEls.map(e=><Cell key={e[0]} el={e} onClick={setSel} colorMode={colorMode} cw={cw} ch={ch}/>)}
             </div>
           </div>
         </>
       )}
 
-      {/* ── JANET ── */}
-      {view === 'janet' && (
-        <div>
-          <div style={{ fontSize:9, opacity:.3, marginBottom:8, letterSpacing:'.04em', maxWidth:700, lineHeight:1.6 }}>
-            <strong style={{ opacity:.7 }}>Janet Left-Step Table (1928):</strong> f→d→p→s reading left to right. Each row ends with the alkaline earth (s²). Helium placed in Group 2 by electron configuration. All 118 elements appear inline — no f-block pullout. Navigate with ←→↑↓ in any element view.
+      {/* ── JANET TABLE ────────────────────────── */}
+      {view==='janet'&&(
+        <>
+          <div style={{fontSize:8.5,opacity:.28,marginBottom:7,maxWidth:760,lineHeight:1.55}}>
+            <strong style={{opacity:.8}}>Janet Left-Step (1928):</strong> f→d→p→s left to right. s-block always rightmost. He in Group 2. All 118 elements inline — no f-block pullout.
           </div>
-          <div style={{ position:'relative', width:32*(CW_JAN+1)+'px', height:7*(CH_JAN+1)+'px' }}>
-            {EL.map(e => {
-              const p = JANET_POS[e[0]]; if (!p) return null;
-              return (
-                <div key={e[0]} style={{ position:'absolute', left:(p[1]-1)*(CW_JAN+1)+'px', top:(p[0]-1)*(CH_JAN+1)+'px' }}>
-                  <Cell el={e} onClick={setSel} colorMode={colorMode} cw={CW_JAN} ch={CH_JAN} />
-                </div>
-              );
+          <div style={{position:'relative',width:32*(cwJ+1)+'px',height:7*(chJ+1)+'px'}}>
+            {EL.map(e=>{const p=JANET_POS[e[0]];if(!p)return null;
+              return <div key={e[0]} style={{position:'absolute',left:(p[1]-1)*(cwJ+1)+'px',top:(p[0]-1)*(chJ+1)+'px'}}>
+                <Cell el={e} onClick={setSel} colorMode={colorMode} cw={cwJ} ch={chJ}/>
+              </div>;
             })}
           </div>
-          <div style={{ display:'flex', gap:14, marginTop:8, flexWrap:'wrap', fontSize:8, opacity:.28 }}>
-            <span>f-block: cols 1–14</span>
-            <span>d-block: cols 15–24</span>
-            <span>p-block: cols 25–30</span>
-            <span>s-block: cols 31–32</span>
+          <div style={{display:'flex',gap:16,marginTop:6,fontSize:7.5,opacity:.22,flexWrap:'wrap'}}>
+            {[['f-block','cols 1–14'],['d-block','cols 15–24'],['p-block','cols 25–30'],['s-block','cols 31–32']].map(([b,c])=>(
+              <span key={b}><strong style={{opacity:.7}}>{b}</strong> {c}</span>
+            ))}
           </div>
-        </div>
+        </>
       )}
 
-      {/* ── DUFOUR SPIRAL ── */}
-      {view === 'dufour' && (
-        <div>
-          <div style={{ fontSize:9, opacity:.3, marginBottom:8, maxWidth:700, lineHeight:1.6 }}>
-            <strong style={{ opacity:.7 }}>Dufour-inspired radial layout:</strong> Elements radiate outward by electron shell count (period). Angular position maps to valence electron count. Noble gases (8 valence) anchor the top of each period ring. Navigate with ←→↑↓ using standard table adjacency.
+      {/* ── DUFOUR SPIRAL ──────────────────────── */}
+      {view==='dufour'&&(
+        <>
+          <div style={{fontSize:8.5,opacity:.28,marginBottom:7,maxWidth:760,lineHeight:1.55}}>
+            <strong style={{opacity:.8}}>Dufour-inspired radial:</strong> Radius = electron shell count. Angle = valence electrons (0 at top = noble gases). Click any element to open full detail.
           </div>
-          <div style={{ position:'relative', width:'900px', height:'840px' }}>
-            {EL.map(e => {
-              const cc = colorMode==='en' ? enColor(EN_DATA[e[0]]) : colorMode==='cosmic' ? ORIGIN_INFO[ORIGIN[e[0]]].c : CATS[e[3]].c;
-              const pos = getDufourPos(e, 900, 840);
-              const sz = 26;
-              return (
-                <div key={e[0]} className="dufour-node" onClick={()=>setSel(e)}
-                  style={{ left:pos.x-sz/2, top:pos.y-sz/2, width:sz, height:sz,
-                    border:`1px solid ${cc}`, background:cc+'15', '--cc':cc }}>
-                  <span style={{ fontSize:e[1].length>2?6:e[1].length===2?7:9, color:cc, fontWeight:'bold' }}>{e[1]}</span>
-                </div>
-              );
+          <div style={{position:'relative',width:'860px',height:'800px'}}>
+            {EL.map(e=>{
+              const cc=colorMode==='en'?enColor(EN_DATA[e[0]]):colorMode==='cosmic'?ORIGIN_INFO[ORIGIN[e[0]]].c:CATS[e[3]].c;
+              const pos=getDufourPos(e,860,800); const sz=25;
+              return <div key={e[0]} className="dnode" onClick={()=>setSel(e)}
+                style={{left:pos.x-sz/2,top:pos.y-sz/2,width:sz,height:sz,border:`1px solid ${cc}`,background:cc+'14','--cc':cc}}>
+                <span style={{fontSize:e[1].length>2?6:e[1].length===2?7:9,color:cc,fontWeight:'bold'}}>{e[1]}</span>
+              </div>;
             })}
-            <div style={{ position:'absolute', left:'50%', top:'50%', transform:'translate(-50%,-50%)', fontSize:22, opacity:.12 }}>⚛</div>
+            <div style={{position:'absolute',left:'50%',top:'50%',transform:'translate(-50%,-50%)',fontSize:24,opacity:.1}}>⚛</div>
           </div>
-        </div>
+        </>
       )}
 
-      {/* Legends */}
-      <div style={{ marginTop:14, display:'flex', gap:24, flexWrap:'wrap' }}>
-        {colorMode === 'category' && (
+      {/* ── LEGEND (collapsible) ─────────────────── */}
+      {legendOpen&&(
+        <div style={{marginTop:12,padding:'10px 12px',background:'rgba(255,255,255,.02)',
+          borderRadius:8,border:'1px solid rgba(140,170,220,.08)',display:'flex',gap:20,flexWrap:'wrap'}}>
+          {colorMode==='category'&&(
+            <div>
+              <div style={{fontSize:6.5,opacity:.25,letterSpacing:'.08em',marginBottom:5}}>ELEMENT CATEGORY</div>
+              <div style={{display:'flex',flexWrap:'wrap',gap:5}}>
+                {Object.entries(CATS).map(([k,{l,c}])=>(
+                  <div key={k} style={{display:'flex',alignItems:'center',gap:3,fontSize:7.5,opacity:.5}}>
+                    <div style={{width:7,height:7,borderRadius:2,background:c+'33',border:`1px solid ${c}`,flexShrink:0}}/>
+                    {l}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          {colorMode==='cosmic'&&(
+            <div>
+              <div style={{fontSize:6.5,opacity:.25,letterSpacing:'.08em',marginBottom:5}}>COSMIC ORIGIN</div>
+              <div style={{display:'flex',flexWrap:'wrap',gap:5}}>
+                {ORIGIN_INFO.map(o=>(
+                  <div key={o.id} style={{display:'flex',alignItems:'center',gap:3,fontSize:7.5,opacity:.55}}>
+                    <div style={{width:7,height:7,borderRadius:'50%',background:o.c,flexShrink:0}}/>
+                    {o.l}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          {colorMode==='en'&&(
+            <div>
+              <div style={{fontSize:6.5,opacity:.25,letterSpacing:'.08em',marginBottom:5}}>ELECTRONEGATIVITY</div>
+              <div style={{display:'flex',alignItems:'center',gap:6}}>
+                <span style={{fontSize:7.5,opacity:.4}}>Low 0.7 (Fr)</span>
+                <div style={{width:130,height:6,borderRadius:3,background:'linear-gradient(90deg,#3b82f6,#84cc16,#ef4444)',opacity:.7}}/>
+                <span style={{fontSize:7.5,opacity:.4}}>High 3.98 (F)</span>
+              </div>
+            </div>
+          )}
           <div>
-            <div style={{ fontSize:7, opacity:.22, letterSpacing:'.08em', marginBottom:5 }}>ELEMENT CATEGORY</div>
-            <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
-              {Object.entries(CATS).map(([k,{l,c}])=>(
-                <div key={k} style={{ display:'flex', alignItems:'center', gap:4, fontSize:8, opacity:.5 }}>
-                  <div style={{ width:8, height:8, borderRadius:2, background:c+'33', border:`1px solid ${c}`, flexShrink:0 }} />
-                  {l}
+            <div style={{fontSize:6.5,opacity:.25,letterSpacing:'.08em',marginBottom:5}}>RARITY</div>
+            <div style={{display:'flex',flexWrap:'wrap',gap:5}}>
+              {Object.entries(RARITY_COLORS).map(([r,c])=>(
+                <div key={r} style={{display:'flex',alignItems:'center',gap:3,fontSize:7.5,opacity:.5}}>
+                  <div style={{width:6,height:6,borderRadius:'50%',background:c}}/>
+                  {r}
                 </div>
               ))}
             </div>
           </div>
-        )}
-        {colorMode === 'cosmic' && (
           <div>
-            <div style={{ fontSize:7, opacity:.22, letterSpacing:'.08em', marginBottom:5 }}>COSMIC ORIGIN</div>
-            <div style={{ display:'flex', flexWrap:'wrap', gap:7 }}>
-              {ORIGIN_INFO.map(o => (
-                <div key={o.id} style={{ display:'flex', alignItems:'center', gap:4, fontSize:8, opacity:.55 }}>
-                  <div style={{ width:8, height:8, borderRadius:'50%', background:o.c, flexShrink:0 }} />
-                  {o.l}
+            <div style={{fontSize:6.5,opacity:.25,letterSpacing:'.08em',marginBottom:5}}>STATE AT STP</div>
+            <div style={{display:'flex',gap:8}}>
+              {Object.entries(STATE_META).map(([s,m])=>(
+                <div key={s} style={{display:'flex',alignItems:'center',gap:3,fontSize:7.5,opacity:.5,color:m.c}}>
+                  {m.icon} {s}
                 </div>
               ))}
+              <div style={{display:'flex',alignItems:'center',gap:3,fontSize:7.5,opacity:.35}}>
+                <span style={{borderBottom:'1px dashed rgba(140,170,220,.5)'}}>dashed</span> = gas
+              </div>
             </div>
           </div>
-        )}
-        {colorMode === 'en' && (
-          <div>
-            <div style={{ fontSize:7, opacity:.22, letterSpacing:'.08em', marginBottom:5 }}>ELECTRONEGATIVITY (PAULING)</div>
-            <div style={{ display:'flex', alignItems:'center', gap:6 }}>
-              <span style={{ fontSize:8, opacity:.4 }}>Low 0.7 (Fr)</span>
-              <div style={{ width:150, height:7, borderRadius:3, background:'linear-gradient(90deg,#3b82f6,#84cc16,#ef4444)', opacity:.7 }} />
-              <span style={{ fontSize:8, opacity:.4 }}>High 3.98 (F)</span>
-            </div>
-          </div>
-        )}
-        <div>
-          <div style={{ fontSize:7, opacity:.22, letterSpacing:'.08em', marginBottom:5 }}>RARITY</div>
-          <div style={{ display:'flex', flexWrap:'wrap', gap:5 }}>
-            {Object.entries(RARITY_COLORS).map(([r,c]) => (
-              <div key={r} style={{ display:'flex', alignItems:'center', gap:4, fontSize:8, opacity:.5 }}>
-                <div style={{ width:7, height:7, borderRadius:'50%', background:c }} />
-                {r}
-              </div>
-            ))}
-          </div>
         </div>
-        <div>
-          <div style={{ fontSize:7, opacity:.22, letterSpacing:'.08em', marginBottom:5 }}>PHYSICAL STATE AT STP</div>
-          <div style={{ display:'flex', gap:10 }}>
-            {Object.entries(STATE_META).map(([s,m]) => (
-              <div key={s} style={{ display:'flex', alignItems:'center', gap:4, fontSize:8, opacity:.5, color:m.c }}>
-                {m.icon} {s}
-              </div>
-            ))}
-          </div>
-        </div>
-        <div>
-          <div style={{ fontSize:7, opacity:.22, letterSpacing:'.08em', marginBottom:5 }}>CELL BORDERS</div>
-          <div style={{ display:'flex', gap:10, fontSize:8, opacity:.4 }}>
-            <span>solid = solid</span>
-            <span style={{ borderBottom:'1px dashed rgba(140,170,220,.5)', paddingBottom:1 }}>dashed = gas</span>
-            <span style={{ borderBottom:'2px solid rgba(52,211,153,.5)', paddingBottom:1 }}>thick = liquid</span>
-            <span>⚗ = synthetic</span>
-          </div>
-        </div>
-      </div>
+      )}
 
-      {sel && <Modal el={sel} onClose={()=>setSel(null)} onNavigate={e=>setSel(e)} view={view} />}
+      {sel&&<Modal el={sel} onClose={()=>setSel(null)} onNavigate={e=>setSel(e)} view={view}/>}
     </div>
   );
 }
@@ -1562,18 +1402,13 @@ const _root = ReactDOM.createRoot(document.getElementById("root"));
 _root.render(React.createElement(PeriodicTable));
 
   </script>
-
   <script>
-    // Hide loader once Babel has compiled and React has mounted
-    window.addEventListener('load', function() {
-      requestAnimationFrame(function() {
-        setTimeout(function() {
-          var loader = document.getElementById('loading');
-          if (loader) { loader.style.opacity = '0'; setTimeout(function(){ loader.remove(); }, 300); }
-        }, 100);
-      });
+    window.addEventListener('load',function(){
+      requestAnimationFrame(function(){setTimeout(function(){
+        var l=document.getElementById('loading');
+        if(l){l.style.opacity='0';setTimeout(function(){l.remove();},400);}
+      },80);});
     });
   </script>
-
 </body>
 </html>
