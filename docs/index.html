@@ -1726,11 +1726,25 @@ function BohrCanvas({ el, sz = 220 }) {
 // Deep-dive registry — element → interactive simulation pages
 // ─────────────────────────────────────────────────
 const DEEP_DIVES = {
-  1: [{
-    href: 'h2.html',
-    title: 'How H₂ forms',
-    blurb: 'Watch two hydrogen atoms find each other and share electrons — a 13-second animated covalent bond.',
-    accent: '#fbbf24',
+  1: [
+    {
+      href: 'h2.html',
+      title: 'How H₂ forms',
+      blurb: 'Watch two hydrogen atoms find each other and share electrons — a 13-second animated covalent bond.',
+      accent: '#fbbf24',
+    },
+    {
+      href: 'nh3.html',
+      title: 'Haber-Bosch: forging NH₃',
+      blurb: 'N₂ + 3 H₂ → 2 NH₃ — iron catalysis, orbital overlap, and the process that turned air into fertilizer.',
+      accent: '#a78bfa',
+    },
+  ],
+  7: [{
+    href: 'nh3.html',
+    title: 'Haber-Bosch: forging NH₃',
+    blurb: 'Why breaking N≡N is the hardest step — then watch N–H bonds form on the path to ammonia.',
+    accent: '#a78bfa',
   }],
 };
 
@@ -1755,7 +1769,13 @@ function Cell({ el, onClick, colorMode, cw, ch, selected }) {
       <span className="esym" style={{color:cc,fontSize:Math.max(9,cw*.36)}}>{sym}</span>
       <span className="emass" style={{fontSize:Math.max(4.5,cw*.13)}}>{mStr}</span>
       {isSyn&&<span className="syn-badge" style={{fontSize:Math.max(5,cw*.13),color:cc}}>⚗</span>}
-      {DEEP_DIVES[n]&&<span className="dd-glyph" style={{fontSize:Math.max(5,cw*.13),color:DEEP_DIVES[n][0].accent}}>▶</span>}
+      {DEEP_DIVES[n]&&(
+        <span
+          className="dd-glyph"
+          style={{fontSize:Math.max(5,cw*.13),color:DEEP_DIVES[n][0].accent}}
+          title={DEEP_DIVES[n].length>1?`${DEEP_DIVES[n].length} deep dives`:'Deep dive'}
+        >▶</span>
+      )}
     </div>
   );
 }

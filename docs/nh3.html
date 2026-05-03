@@ -1,0 +1,1534 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>NH3 - Haber-Bosch: Forging Ammonia</title>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+    html,body{height:100%;background:#080e1a;color:#e2ecff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;overflow:hidden;-webkit-font-smoothing:antialiased;}
+    #root{height:100vh;display:flex;flex-direction:column;}
+    ::-webkit-scrollbar{width:5px;}::-webkit-scrollbar-thumb{background:rgba(148,163,184,.2);border-radius:3px;}
+    button{cursor:pointer;}
+    .appbar{background:#0a1220;border-bottom:1px solid rgba(148,163,184,.1);height:52px;display:flex;align-items:center;gap:12px;padding:0 18px;flex-shrink:0;}
+    .appbar-back{color:rgba(148,163,184,.45);font-size:12px;text-decoration:none;transition:color .15s;}
+    .appbar-back:hover{color:#e2ecff;}
+    .appbar-sep{width:1px;height:20px;background:rgba(148,163,184,.12);flex-shrink:0;}
+    .appbar-label{font-size:11px;opacity:.28;letter-spacing:.18em;font-family:'Courier New',monospace;}
+    .appbar-title{font-size:20px;font-weight:700;color:#a78bfa;font-family:'Courier New',monospace;}
+    .appbar-subtitle{font-size:12px;opacity:.4;}
+    .appbar-meta{margin-left:auto;font-size:11px;opacity:.22;font-family:'Courier New',monospace;}
+    .steps-bar{display:flex;align-items:center;padding:10px 18px;background:rgba(255,255,255,.015);border-bottom:1px solid rgba(148,163,184,.07);flex-shrink:0;gap:0;}
+    .step-item{display:flex;align-items:center;gap:7px;flex:1;}
+    .step-item:not(:last-child)::after{content:'';flex:1;height:1px;background:rgba(148,163,184,.15);margin:0 4px;}
+    .step-pill{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;font-family:'Courier New',monospace;border:1.5px solid;flex-shrink:0;transition:all .25s;}
+    .step-label{font-size:10.5px;line-height:1.3;font-weight:500;transition:color .25s;white-space:nowrap;}
+    .main{flex:1;display:flex;overflow:hidden;min-height:0;}
+    .canvas-col{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0;}
+    .canvas-wrap{flex:1;display:flex;align-items:center;justify-content:center;padding:10px 14px;background:#080e1a;overflow:hidden;}
+    .canvas-wrap canvas{display:block;border-radius:12px;border:1px solid rgba(148,163,184,.07);box-shadow:0 0 80px rgba(167,139,250,.05),0 20px 60px rgba(0,0,0,.5);}
+    .controls{flex-shrink:0;padding:8px 16px;border-top:1px solid rgba(148,163,184,.07);display:flex;align-items:center;gap:8px;}
+    .progress-track{flex:1;min-width:60px;height:4px;background:rgba(148,163,184,.1);border-radius:2px;overflow:hidden;}
+    .progress-fill{height:100%;border-radius:2px;background:linear-gradient(90deg,#60a5fa 0%,#a78bfa 22%,#f87171 40%,#fb923c 60%,#4ade80 100%);transition:width .15s;}
+    .mode-toggle{display:flex;border:1px solid rgba(148,163,184,.14);border-radius:6px;overflow:hidden;flex-shrink:0;}
+    .mode-btn{background:transparent;border:none;border-right:1px solid rgba(148,163,184,.12);color:rgba(203,213,225,.4);padding:4px 11px;font-size:10px;font-family:'Courier New',monospace;letter-spacing:.04em;transition:all .14s;white-space:nowrap;cursor:pointer;}
+    .mode-btn:last-child{border-right:none;}
+    .mode-btn:hover{background:rgba(255,255,255,.05);color:rgba(203,213,225,.7);}
+    .mode-ov{background:rgba(56,189,248,.12) !important;color:#e2f0ff !important;}
+    .mode-el{background:rgba(249,115,22,.12) !important;color:#fed7aa !important;}
+    .phase-hint{display:flex;align-items:center;gap:5px;padding:3px 10px;background:rgba(248,113,113,.07);border:1px solid rgba(248,113,113,.2);border-radius:5px;font-size:10px;color:rgba(248,113,113,.8);cursor:pointer;flex-shrink:0;animation:hintBlink 2.5s ease-in-out infinite;}
+    .phase-hint:hover{background:rgba(248,113,113,.14);}
+    @keyframes hintBlink{0%,100%{opacity:.75}50%{opacity:1}}
+    .ctrl-btn{background:rgba(255,255,255,.05);border:1px solid rgba(148,163,184,.14);color:rgba(203,213,225,.6);border-radius:6px;padding:4px 11px;font-size:13px;transition:all .12s;flex-shrink:0;}
+    .ctrl-btn:hover{background:rgba(255,255,255,.1);color:#e2ecff;}
+    .replay-btn{background:rgba(167,139,250,.1);border:1px solid rgba(167,139,250,.22);color:#a78bfa;border-radius:6px;padding:4px 11px;font-size:11px;font-family:'Courier New',monospace;transition:all .12s;flex-shrink:0;}
+    .replay-btn:hover{background:rgba(167,139,250,.2);}
+    .speed-btn{border:1px solid rgba(148,163,184,.12);border-radius:5px;padding:3px 8px;font-size:10px;font-family:'Courier New',monospace;transition:all .12s;flex-shrink:0;}
+    .right-panel{width:332px;flex-shrink:0;border-left:1px solid rgba(148,163,184,.1);background:#0d1525;overflow-y:auto;display:flex;flex-direction:column;}
+    .panel-section{padding:15px 17px;border-bottom:1px solid rgba(148,163,184,.07);}
+    .section-eyebrow{font-size:9.5px;font-family:'Courier New',monospace;letter-spacing:.14em;opacity:.25;text-transform:uppercase;margin-bottom:10px;}
+    .happening-card{border-radius:8px;padding:12px 14px;border:1px solid;}
+    .happening-lead{font-size:14px;font-weight:600;line-height:1.4;margin-bottom:6px;}
+    .happening-body{font-size:12.5px;color:rgba(203,213,225,.62);line-height:1.65;}
+    .happening-body strong{color:rgba(226,236,255,.82);font-weight:600;}
+    .energy-tally{background:rgba(255,255,255,.03);border:1px solid rgba(148,163,184,.1);border-radius:8px;padding:12px 14px;}
+    .tally-row{display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid rgba(148,163,184,.05);}
+    .tally-row:last-child{border-bottom:none;padding-top:7px;margin-top:3px;border-top:1px solid rgba(148,163,184,.12);}
+    .tally-label{font-size:11px;opacity:.45;}
+    .tally-value{font-size:12px;font-weight:700;font-family:'Courier New',monospace;}
+    .stats-trio{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;}
+    .stat-card{background:rgba(255,255,255,.04);border-radius:7px;padding:10px 8px;text-align:center;}
+    .stat-value{font-size:18px;font-weight:700;font-family:'Courier New',monospace;line-height:1.1;margin-bottom:3px;}
+    .stat-unit{font-size:10px;opacity:.42;font-family:'Courier New',monospace;}
+    .stat-label{font-size:10px;opacity:.32;margin-top:2px;}
+    .acc-item{border-bottom:1px solid rgba(148,163,184,.06);}
+    .acc-item:last-child{border-bottom:none;}
+    .acc-hdr{display:flex;align-items:center;justify-content:space-between;padding:11px 0;cursor:pointer;user-select:none;}
+    .acc-title{font-size:12.5px;font-weight:600;color:#fb923c;line-height:1.3;flex:1;padding-right:8px;}
+    .acc-chev{font-size:10px;opacity:.4;transition:transform .2s;flex-shrink:0;}
+    .acc-chev.open{transform:rotate(180deg);opacity:.7;}
+    .acc-body{font-size:12.5px;color:rgba(203,213,225,.52);line-height:1.75;padding-bottom:12px;}
+    .acc-body strong{color:rgba(226,236,255,.75);font-weight:600;}
+  </style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel" data-presets="react">
+
+
+const { useState, useEffect, useRef } = React;
+
+// ── Canvas buffer ─────────────────────────────────────────────────────
+const CW = 740, CH = 390;      // logical canvas pixels
+const ANIM_SECS = 28;
+
+// ── Math helpers ──────────────────────────────────────────────────────
+const clamp  = (v,lo,hi) => Math.max(lo, Math.min(hi, v));
+const lerp   = (a,b,t)   => a + (b-a)*t;
+const p01    = (t,t0,t1) => clamp((t-t0)/(t1-t0), 0, 1);
+const ease3  = t => t<0.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2;
+const easeO  = t => 1-(1-t)*(1-t);
+const easeI  = t => t*t;
+
+// ── Colour helpers ────────────────────────────────────────────────────
+const rgb = (r,g,b,a=1) => `rgba(${r},${g},${b},${a})`;
+const hex2rgb = h => { const n=parseInt(h.slice(1),16); return [(n>>16)&255,(n>>8)&255,n&255]; };
+
+// ── Phase data ────────────────────────────────────────────────────────
+const PHASES = [
+  { step:"N≡N Bond",    color:'#a78bfa' },
+  { step:"Reactants",   color:'#60a5fa' },
+  { step:"Catalyst",    color:'#f59e0b' },
+  { step:"N≡N Breaks",  color:'#f87171' },
+  { step:"N−H Forming", color:'#fb923c' },
+  { step:"NH₃ Free",    color:'#4ade80' },
+];
+
+const HAPPENING = [
+  { color:'#a78bfa',
+    headline:"The triple bond: nature's toughest barrier",
+    body:<>N≡N at <strong>945 kJ/mol</strong> is the strongest diatomic bond that exists — a single σ bond plus two perpendicular π bonds, all locking the two nitrogen atoms together. Separating them requires as much energy as it takes to boil a kilogram of water <em>17 times over</em>.</> },
+  { color:'#60a5fa',
+    headline:"Total energy investment: 2,253 kJ/mol",
+    body:<>Breaking all three H−H bonds costs <strong>3 × 436 = 1,308 kJ/mol</strong>. Combined with N≡N, you must inject <strong>2,253 kJ/mol</strong> before a single N−H bond can form. This is why the Haber-Bosch process requires 400–500 °C and 150–300 atm.</> },
+  { color:'#f59e0b',
+    headline:"Iron catalyst: slashing the barrier by 645 kJ/mol",
+    body:<>On the bare Fe(111) crystal surface, the <strong>activation energy for N≡N dissociation drops from ~800 to ~155 kJ/mol</strong>. Iron works by chemisorbing N₂ — weakening the triple bond by back-donating electron density into N₂'s antibonding orbitals before it breaks.</> },
+  { color:'#f87171',
+    headline:"N≡N shatters — the rate-limiting step",
+    body:<>Dissociative chemisorption: the N≡N bond breaks across two adjacent Fe surface atoms. This is the <strong>rate-limiting step</strong> of the entire synthesis — the reaction can only proceed as fast as the surface can break N≡N. The two N atoms now bond strongly to the iron surface (N*) at ~300 kJ/mol binding energy.</> },
+  { color:'#fb923c',
+    headline:"Sequential N−H bond formation on the surface",
+    body:<>Adsorbed H* atoms (from H₂ dissociation) react with N* atoms step by step: <strong>N* + H* → NH*</strong>, then <strong>NH* + H* → NH₂*</strong>, then <strong>NH₂* + H* → NH₃*</strong>. Each step releases energy — the system is descending toward the product energy well.</> },
+  { color:'#4ade80',
+    headline:"NH₃ desorbs — 2,346 kJ/mol returned",
+    body:<>Ammonia detaches from the iron surface as a free molecule. Forming <strong>6 N−H bonds (6 × 391 kJ/mol = 2,346 kJ/mol)</strong> more than compensates the 2,253 kJ invested. Net: <strong>−93 kJ/mol released</strong>. The molecule is trigonal pyramidal with a lone pair squeezing the H−N−H angle to 107°.</> },
+];
+
+// ── Energy tally per phase ─────────────────────────────────────────────
+// Tracks which bonds have been broken/formed at each phase
+const ENERGY_PHASES = [
+  { broken: [],          formed: [],         net: 0    },
+  { broken: [],          formed: [],         net: 0    },
+  { broken: [],          formed: [],         net: 0    },
+  { broken: ['N≡N'],     formed: [],         net: 945  },  // input (positive = energy cost)
+  { broken: ['N≡N','3×H−H'], formed: [],     net: 2253 },
+  { broken: ['N≡N','3×H−H'], formed: ['6×N−H'], net: -93 },
+];
+
+// ── Reaction coordinate profile ───────────────────────────────────────
+const RXN_PTS = [
+  {x:0.04,  e:0,    label:'N₂+3H₂', ts:false},
+  {x:0.12,  e:20,   label:'ads.',    ts:false},
+  {x:0.23,  e:155,  label:'TS',      ts:true },
+  {x:0.38,  e:65,   label:'N*+H*',   ts:false},
+  {x:0.52,  e:30,   label:'NH*',     ts:false},
+  {x:0.66,  e:-20,  label:'NH₂*',    ts:false},
+  {x:0.80,  e:-60,  label:'NH₃*',    ts:false},
+  {x:0.95,  e:-93,  label:'2NH₃',    ts:false},
+];
+// Without catalyst (overlay)
+const RXN_NO_CAT = [
+  {x:0.04,e:0},{x:0.22,e:800},{x:0.38,e:65},{x:0.80,e:-60},{x:0.95,e:-93}
+];
+
+function getAnimState(t) {
+  const n = clamp(t / ANIM_SECS, 0, 1);
+  const phase = n<0.12?0:n<0.24?1:n<0.38?2:n<0.55?3:n<0.78?4:5;
+  return { n, phase,
+    // sub-progress within each phase (0→1)
+    p0: ease3(p01(n, 0.00, 0.12)),
+    p1: ease3(p01(n, 0.12, 0.24)),
+    p2: ease3(p01(n, 0.24, 0.38)),
+    p3: ease3(p01(n, 0.38, 0.55)),
+    p4: ease3(p01(n, 0.55, 0.78)),
+    p5: ease3(p01(n, 0.78, 1.00)),
+    // continuous values
+    catalystY:  lerp(CH + 60, CH * 0.68, ease3(p01(n, 0.24, 0.36))),
+    n2sep:      lerp(28, 90, ease3(p01(n, 0.42, 0.54))),   // N≡N bond stretch
+    n2breakA:   ease3(p01(n, 0.50, 0.56)),                  // N≡N break flash
+    nhBonds:    clamp(Math.floor(p01(n, 0.58, 0.76) * 3.6), 0, 3), // 0→3 N-H bonds formed
+    nh3riseY:   lerp(CH*0.75, CH*0.35, ease3(p01(n, 0.80, 0.96))),
+    nh3spinA:   p01(n, 0.88, 1.00),
+    // running energy counter
+    energyIn:  lerp(0, 2253, ease3(p01(n, 0.38, 0.62))),
+    energyOut: lerp(0, 2346, ease3(p01(n, 0.60, 0.85))),
+  };
+}
+
+// ── Reaction coordinate diagram ───────────────────────────────────────
+function ReactionDiagram({ progressN }) {
+  const W=200, H=130, px=28, py=12;
+  const eMin=-130, eMax=840;
+  const toX = x => px + x*(W-2*px);
+  const toY = e => py + (1-(e-eMin)/(eMax-eMin))*(H-2*py);
+
+  // Smooth curve through RXN_PTS using simple piecewise linear
+  const catPts = RXN_PTS.map(p=>`${toX(p.x).toFixed(1)},${toY(p.e).toFixed(1)}`).join(' L ');
+  const noCatPts = RXN_NO_CAT.map(p=>`${toX(p.x).toFixed(1)},${toY(p.e).toFixed(1)}`).join(' L ');
+
+  // Find tracker position
+  const xi = clamp(progressN, 0, 1);
+  // Interpolate on RXN_PTS
+  let tx=0,te=0;
+  for (let i=0;i<RXN_PTS.length-1;i++){
+    const a=RXN_PTS[i], b=RXN_PTS[i+1];
+    if (xi>=a.x && xi<=b.x){const t=(xi-a.x)/(b.x-a.x);tx=lerp(a.x,b.x,t);te=lerp(a.e,b.e,t);break;}
+  }
+  if (xi>RXN_PTS[RXN_PTS.length-1].x){tx=RXN_PTS[RXN_PTS.length-1].x;te=RXN_PTS[RXN_PTS.length-1].e;}
+
+  const zy = toY(0);
+  return (
+    <svg width={W} height={H} style={{display:'block',overflow:'visible'}}>
+      {/* Zero line */}
+      <line x1={px} y1={zy} x2={W-px} y2={zy} stroke="rgba(148,163,184,.15)" strokeWidth="0.6" strokeDasharray="3,2"/>
+      <text x={px-2} y={zy+3} textAnchor="end" fill="rgba(148,163,184,.3)" fontSize="6" fontFamily="monospace">0</text>
+      {/* -93 product line */}
+      <line x1={px} y1={toY(-93)} x2={W-px} y2={toY(-93)} stroke="rgba(74,222,128,.14)" strokeWidth="0.6" strokeDasharray="2,2"/>
+      <text x={W-px+2} y={toY(-93)+3} textAnchor="start" fill="rgba(74,222,128,.4)" fontSize="6" fontFamily="monospace">−93</text>
+      {/* Without catalyst curve */}
+      <polyline points={noCatPts} fill="none" stroke="rgba(248,113,113,.25)" strokeWidth="1.2" strokeDasharray="3,2"/>
+      <text x={toX(0.22)} y={toY(800)-6} textAnchor="middle" fill="rgba(248,113,113,.4)" fontSize="6" fontFamily="monospace">no catalyst</text>
+      <text x={toX(0.22)} y={toY(800)+4} textAnchor="middle" fill="rgba(248,113,113,.4)" fontSize="6" fontFamily="monospace">~800 kJ/mol</text>
+      {/* With catalyst curve */}
+      <polyline points={catPts} fill="none" stroke="rgba(167,139,250,.7)" strokeWidth="1.8"/>
+      {/* TS marker */}
+      <text x={toX(0.23)} y={toY(155)-7} textAnchor="middle" fill="rgba(251,146,60,.65)" fontSize="6.5" fontFamily="monospace">155 kJ/mol TS</text>
+      {/* Axes */}
+      <text x={W/2} y={H+2} textAnchor="middle" fill="rgba(148,163,184,.28)" fontSize="6.5" fontFamily="'Courier New',monospace">reaction coordinate →</text>
+      <text x={8} y={H/2} textAnchor="middle" fill="rgba(148,163,184,.28)" fontSize="6.5" fontFamily="'Courier New',monospace" transform={`rotate(-90,8,${H/2})`}>energy (kJ/mol)</text>
+      {/* Tracker */}
+      <circle cx={toX(tx)} cy={toY(te)} r="5.5" fill="#f97316" opacity="0.9"/>
+      <circle cx={toX(tx)} cy={toY(te)} r="9" fill="none" stroke="#f97316" strokeWidth="1" opacity="0.3"/>
+    </svg>
+  );
+}
+
+// ── Accordion ─────────────────────────────────────────────────────────
+function AccordionItem({ title, children }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="accordion-item">
+      <div className="accordion-header" onClick={()=>setOpen(o=>!o)}>
+        <span className="accordion-title">{title}</span>
+        <span className={`accordion-chevron${open?' open':''}`}>▼</span>
+      </div>
+      {open && <div className="accordion-body">{children}</div>}
+    </div>
+  );
+}
+
+// ── Main canvas drawing ───────────────────────────────────────────────
+function drawScene(ctx, S, stRef) {
+  const W=CW, H=CH, cx=W/2, cy=H/2;
+  ctx.clearRect(0,0,W,H);
+
+  // Background gradient
+  const bg=ctx.createLinearGradient(0,0,0,H);
+  bg.addColorStop(0,'#080e1a');
+  bg.addColorStop(1,'#0a0f1e');
+  ctx.fillStyle=bg; ctx.fillRect(0,0,W,H);
+
+  // ── Helper: draw electron cloud as radial gradient blob ──────────
+  function cloud(x,y,r,color,alpha=0.7) {
+    const g=ctx.createRadialGradient(x,y,0,x,y,r);
+    const [cr,cg,cb]=hex2rgb(color);
+    g.addColorStop(0,rgb(cr,cg,cb,alpha));
+    g.addColorStop(0.45,rgb(cr,cg,cb,alpha*0.55));
+    g.addColorStop(1,rgb(cr,cg,cb,0));
+    ctx.fillStyle=g;
+    ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill();
+  }
+
+  function nucleus(x,y,r,color,label) {
+    // Glow
+    cloud(x,y,r*5,color,0.35);
+    // Core
+    ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);
+    ctx.fillStyle='#ffffff';ctx.fill();
+    ctx.strokeStyle=color;ctx.lineWidth=2;ctx.stroke();
+    if (label) {
+      ctx.font=`bold ${Math.max(9,r*1.1)}px 'Courier New',monospace`;
+      ctx.fillStyle=color; ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.fillText(label,x,y);
+    }
+  }
+
+  function atom(x,y,cloudR,nucR,cloudColor,nucColor,label,alpha=1) {
+    ctx.save(); ctx.globalAlpha=alpha;
+    cloud(x,y,cloudR,cloudColor,0.62);
+    nucleus(x,y,nucR,nucColor,label);
+    ctx.restore();
+  }
+
+  // ── Bond line ─────────────────────────────────────────────────────
+  function bondLine(x1,y1,x2,y2,color,width=2,alpha=0.6) {
+    ctx.save(); ctx.globalAlpha=alpha;
+    ctx.strokeStyle=color; ctx.lineWidth=width;
+    ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+    ctx.restore();
+  }
+
+  // ── Iron surface ──────────────────────────────────────────────────
+  function drawIronSurface(surfY, alpha=1) {
+    if (alpha<0.02) return;
+    ctx.save(); ctx.globalAlpha=alpha;
+    const nFe=10, spacing=W/(nFe+1), feR=16;
+    for (let row=0;row<2;row++) {
+      const ry = surfY + row*feR*1.7;
+      const offset = row%2===1?spacing/2:0;
+      for (let i=0;i<nFe+(row===1?1:0);i++) {
+        const fx = offset + spacing*i + (row===1?0:spacing*0.5);
+        if (fx<feR||fx>W-feR) continue;
+        // Metallic sphere
+        const mg=ctx.createRadialGradient(fx-feR*0.3,ry-feR*0.3,0,fx,ry,feR);
+        mg.addColorStop(0,'rgba(255,200,100,0.9)');
+        mg.addColorStop(0.4,'rgba(210,140,40,0.85)');
+        mg.addColorStop(1,'rgba(120,70,10,0.8)');
+        ctx.beginPath();ctx.arc(fx,ry,feR,0,Math.PI*2);
+        ctx.fillStyle=mg;ctx.fill();
+        ctx.strokeStyle='rgba(255,180,60,.4)';ctx.lineWidth=0.8;ctx.stroke();
+        ctx.font='bold 9px monospace';
+        ctx.fillStyle='rgba(255,240,200,.7)';ctx.textAlign='center';ctx.textBaseline='middle';
+        ctx.fillText('Fe',fx,ry);
+      }
+    }
+    // Surface label
+    ctx.font='10px system-ui,sans-serif';
+    ctx.fillStyle='rgba(251,191,36,.45)';ctx.textAlign='left';ctx.textBaseline='top';
+    ctx.fillText('Fe(111) catalyst surface — 450 °C, 200 atm',12,surfY+feR*3.8);
+    ctx.restore();
+  }
+
+  // ── PHASE 0: N₂ triple bond showcase ─────────────────────────────
+  if (S.phase === 0 || (S.phase === 1 && S.p1 < 0.3)) {
+    const a = S.phase===0 ? 1 : lerp(1, 0.3, p01(S.p1,0,0.3));
+    const NX1=cx-34, NX2=cx+34, NY=cy;
+
+    ctx.save(); ctx.globalAlpha=a;
+    // σ bond (amber, axial density)
+    const sg=ctx.createLinearGradient(NX1,NY,NX2,NY);
+    sg.addColorStop(0,'rgba(167,139,250,0)'); sg.addColorStop(0.5,'rgba(251,191,36,0.5)'); sg.addColorStop(1,'rgba(167,139,250,0)');
+    ctx.fillStyle=sg; ctx.beginPath(); ctx.ellipse(cx,NY,55,14,0,0,Math.PI*2); ctx.fill();
+    // π bond 1 (above/below — shown as two lentil shapes)
+    [[NY-30],[NY+30]].forEach(([py])=>{
+      const pg=ctx.createRadialGradient(cx,py,0,cx,py,32);
+      pg.addColorStop(0,'rgba(167,139,250,0.45)');pg.addColorStop(0.5,'rgba(139,92,246,0.25)');pg.addColorStop(1,'rgba(139,92,246,0)');
+      ctx.fillStyle=pg;ctx.beginPath();ctx.ellipse(cx,py,42,16,0,0,Math.PI*2);ctx.fill();
+    });
+    // π bond 2 (left/right — orthogonal, shown slightly smaller in 2D projection)
+    [[cx-30,NY],[cx+30,NY]].forEach(([px,py])=>{
+      const pg=ctx.createRadialGradient(px,py,0,px,py,18);
+      pg.addColorStop(0,'rgba(192,132,252,0.3)');pg.addColorStop(1,'rgba(192,132,252,0)');
+      ctx.fillStyle=pg;ctx.beginPath();ctx.arc(px,py,18,0,Math.PI*2);ctx.fill();
+    });
+    // Electron particles
+    const eT = stRef.current.t * 3.2;
+    // σ electron pair (on axis, orbiting)
+    for (let k=0;k<2;k++) {
+      const ea = eT + k*Math.PI;
+      const ex=cx+Math.cos(ea)*28, ey=NY+Math.sin(ea)*8;
+      cloud(ex,ey,10,'#fbbf24',0.75);
+      ctx.fillStyle='white';ctx.beginPath();ctx.arc(ex,ey,2.5,0,Math.PI*2);ctx.fill();
+    }
+    // π electrons (above/below)
+    for (let k=0;k<2;k++) {
+      const ea = eT*0.72 + k*Math.PI + Math.PI/2;
+      const ex=cx+Math.cos(ea)*32, ey=NY-26+Math.sin(ea)*9;
+      cloud(ex,ey,9,'#a78bfa',0.7);
+      ctx.fillStyle='white';ctx.beginPath();ctx.arc(ex,ey,2.2,0,Math.PI*2);ctx.fill();
+    }
+    for (let k=0;k<2;k++) {
+      const ea = -eT*0.72 + k*Math.PI + Math.PI/2;
+      const ex=cx+Math.cos(ea)*32, ey=NY+26+Math.sin(ea)*9;
+      cloud(ex,ey,9,'#a78bfa',0.7);
+      ctx.fillStyle='white';ctx.beginPath();ctx.arc(ex,ey,2.2,0,Math.PI*2);ctx.fill();
+    }
+    // Nuclei
+    nucleus(NX1,NY,10,'#a78bfa','N');
+    nucleus(NX2,NY,10,'#a78bfa','N');
+
+    // Labels
+    ctx.font='bold 12px system-ui,sans-serif';
+    ctx.fillStyle='#a78bfa';ctx.textAlign='center';ctx.textBaseline='bottom';
+    ctx.fillText('N≡N   Triple Bond',cx,NY-62);
+    ctx.font='12px system-ui,sans-serif';
+    ctx.fillStyle='rgba(203,213,225,.6)';ctx.textBaseline='top';
+    ctx.fillText('1 σ bond + 2 π bonds',cx,NY-58);
+    // Bond annotations
+    [[-1,0,'σ bond (axis)'],[0,-1,'π bond'],[0,1,'π bond']].forEach(([dx,dy,lbl],i)=>{
+      if (i>0) {
+        ctx.font='10px system-ui,sans-serif';
+        ctx.fillStyle='rgba(167,139,250,.55)';ctx.textAlign='center';ctx.textBaseline=dy<0?'bottom':'top';
+        ctx.fillText(lbl,cx+dx*70,NY+dy*52);
+      }
+    });
+    // Bond energy callout
+    ctx.save();
+    ctx.fillStyle='rgba(248,113,113,.12)';
+    ctx.strokeStyle='rgba(248,113,113,.25)'; ctx.lineWidth=1;
+    const bx=cx, by=NY+72, bw=200, bh=36;
+    roundRect(ctx,bx-bw/2,by,bw,bh,6);
+    ctx.fill(); ctx.stroke();
+    ctx.font='bold 15px monospace'; ctx.fillStyle='#f87171';
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText('945 kJ/mol to break this bond',bx,by+bh/2);
+    ctx.restore();
+
+    ctx.restore();
+  }
+
+  // ── PHASE 1: All reactants ──────────────────────────────────────
+  if (S.phase >= 1) {
+    const a = S.phase===1 ? S.p1 : 1;
+    ctx.save(); ctx.globalAlpha=a;
+
+    const surfA = S.phase>=2 ? S.p2 : 0;
+    const catY  = S.catalystY;
+
+    // N₂ — positioned above surface left-ish
+    const n2x = lerp(cx-140, cx-140, 1); // stays left
+    const n2baseY = H*0.34;
+    const n2y = S.phase>=2 ? lerp(n2baseY, catY-60, ease3(p01(S.n,0.30,0.42))) : n2baseY;
+    const n2sep = S.n < 0.38 ? 28 : lerp(28, S.n2sep, p01(S.n,0.38,0.54));
+
+    // Draw N₂
+    if (S.phase < 4 || S.n2breakA < 0.99) {
+      const brkA = S.n2breakA;
+      const cloudA = lerp(1, 0, brkA);
+      // σ bond density between N atoms
+      if (cloudA > 0.02) {
+        const sg=ctx.createLinearGradient(n2x-n2sep,n2y,n2x+n2sep,n2y);
+        sg.addColorStop(0,'rgba(167,139,250,0)');sg.addColorStop(0.5,`rgba(251,191,36,${0.45*cloudA})`);sg.addColorStop(1,'rgba(167,139,250,0)');
+        ctx.fillStyle=sg;ctx.beginPath();ctx.ellipse(n2x,n2y,n2sep+12,11,0,0,Math.PI*2);ctx.fill();
+        // π lobes fade in stretch
+        const piA=Math.max(0,cloudA);
+        [n2y-22,n2y+22].forEach(py=>{
+          const pg=ctx.createRadialGradient(n2x,py,0,n2x,py,26);
+          pg.addColorStop(0,`rgba(139,92,246,${0.38*piA})`);pg.addColorStop(1,'rgba(139,92,246,0)');
+          ctx.fillStyle=pg;ctx.beginPath();ctx.ellipse(n2x,py,Math.min(n2sep,36),13,0,0,Math.PI*2);ctx.fill();
+        });
+      }
+      // N≡N break flash
+      if (brkA > 0.1) {
+        ctx.save(); ctx.globalAlpha=brkA*0.7;
+        const fg=ctx.createRadialGradient(n2x,n2y,0,n2x,n2y,70);
+        fg.addColorStop(0,'rgba(248,113,113,0.8)');fg.addColorStop(0.4,'rgba(248,113,113,0.2)');fg.addColorStop(1,'transparent');
+        ctx.fillStyle=fg;ctx.beginPath();ctx.arc(n2x,n2y,70,0,Math.PI*2);ctx.fill();
+        ctx.restore();
+      }
+      nucleus(n2x-n2sep,n2y,10,'#a78bfa','N');
+      nucleus(n2x+n2sep,n2y,10,'#a78bfa','N');
+      if (S.phase < 3) {
+        ctx.font='11px system-ui,sans-serif';ctx.fillStyle='rgba(167,139,250,.7)';
+        ctx.textAlign='center';ctx.textBaseline='bottom';
+        ctx.fillText('N≡N',n2x,n2y-45);
+        ctx.font='10px monospace';ctx.fillStyle='rgba(248,113,113,.6)';
+        ctx.fillText('945 kJ/mol',n2x,n2y-32);
+      }
+    }
+
+    // After breaking: two separate N* on surface
+    if (S.n2breakA > 0.55 && S.phase >= 3) {
+      const na = p01(S.n2breakA, 0.55, 0.85);
+      const n1x = lerp(n2x-n2sep, cx-100, ease3(na));
+      const n2xR = lerp(n2x+n2sep, cx-55,  ease3(na));
+      const ny2 = lerp(n2y, catY-22, ease3(na));
+      ctx.globalAlpha=na;
+      atom(n1x,ny2,28,10,'#a78bfa','#a78bfa','N');
+      atom(n2xR,ny2,28,10,'#a78bfa','#a78bfa','N');
+      if (na>0.5){
+        ctx.font='9px system-ui,sans-serif';ctx.fillStyle='rgba(167,139,250,.55)';
+        ctx.textAlign='center';ctx.textBaseline='top';
+        ctx.fillText('N*',n1x,ny2+14); ctx.fillText('N*',n2xR,ny2+14);
+      }
+      ctx.globalAlpha=a;
+    }
+
+    // 3 × H₂ molecules — right side
+    const h2Positions = [[cx+60,H*0.26],[cx+120,H*0.26],[cx+90,H*0.40]];
+    h2Positions.forEach(([hx,hy],i)=>{
+      const hbaseY=hy;
+      const htargetY = catY-55-(i%2===0?0:12);
+      const hy2 = S.phase>=2 ? lerp(hbaseY, htargetY, ease3(p01(S.n,0.30,0.42+(i*0.04)))) : hbaseY;
+      // H₂ dissociates in phase 3
+      const hdissA = p01(S.n, 0.46+i*0.03, 0.56+i*0.03);
+      if (hdissA < 0.9) {
+        const sepH = lerp(14, 30, ease3(hdissA));
+        // bond cloud
+        const hg=ctx.createLinearGradient(hx-sepH,hy2,hx+sepH,hy2);
+        hg.addColorStop(0,'rgba(96,165,250,0)');hg.addColorStop(0.5,`rgba(96,165,250,${0.4*(1-hdissA)})`);hg.addColorStop(1,'rgba(96,165,250,0)');
+        ctx.fillStyle=hg;ctx.beginPath();ctx.ellipse(hx,hy2,sepH+8,8,0,0,Math.PI*2);ctx.fill();
+        nucleus(hx-sepH,hy2,7,'#60a5fa','H');
+        nucleus(hx+sepH,hy2,7,'#60a5fa','H');
+        if (S.phase<3 && hdissA<0.2){
+          ctx.font='10px monospace';ctx.fillStyle='rgba(96,165,250,.55)';
+          ctx.textAlign='center';ctx.textBaseline='bottom';
+          ctx.fillText('436 kJ/mol',hx,hy2-28);
+        }
+      } else {
+        // Dissociated: two H* atoms on surface
+        const hia = p01(hdissA,0.9,1.0);
+        const h1x=hx-lerp(30,42,hia), h2x=hx+lerp(30,46,hia);
+        const hay=lerp(hy2,catY-18,ease3(hia));
+        ctx.globalAlpha=hia;
+        atom(h1x,hay,18,7,'#60a5fa','#60a5fa','H');
+        atom(h2x,hay,18,7,'#60a5fa','#60a5fa','H');
+        ctx.globalAlpha=a;
+      }
+      if (S.phase<3){ctx.font='10px system-ui,sans-serif';ctx.fillStyle='rgba(96,165,250,.55)';ctx.textAlign='center';ctx.textBaseline='top';ctx.fillText('H−H',hx,hy+22);}
+    });
+
+    // H₂ label
+    if (S.phase===1) {
+      ctx.font='bold 11px system-ui,sans-serif';ctx.fillStyle='rgba(96,165,250,.6)';
+      ctx.textAlign='center';ctx.textBaseline='bottom';
+      ctx.fillText('3 × H₂  (3 × 436 kJ/mol)',cx+90,H*0.18);
+    }
+
+    // ── N-H bonds forming (phase 4) ─────────────────────────────
+    if (S.phase >= 4) {
+      const nb = S.nhBonds;
+      // Position: one N on surface getting H atoms added
+      const nnx = cx-100, nny = catY-22;
+      // The growing NH/NH₂/NH₃
+      const angles107 = [210, 330, 90];   // degrees for the 3 H atoms around N
+      const NHR = 40;   // N-H bond length in pixels
+      for (let b=0;b<nb;b++) {
+        const ang = angles107[b] * Math.PI/180;
+        const hbx = nnx + Math.cos(ang)*NHR, hby = nny + Math.sin(ang)*NHR;
+        const bondA = p01(S.n, 0.58+b*0.06, 0.64+b*0.06);
+        // Bond cloud forming
+        ctx.save(); ctx.globalAlpha=bondA*0.8;
+        const bg3=ctx.createLinearGradient(nnx,nny,hbx,hby);
+        bg3.addColorStop(0,'rgba(251,146,60,0)');bg3.addColorStop(0.5,'rgba(251,146,60,0.55)');bg3.addColorStop(1,'rgba(251,146,60,0)');
+        ctx.fillStyle=bg3;
+        ctx.beginPath();ctx.moveTo(nnx,nny);
+        const perp=Math.atan2(hby-nny,hbx-nnx)+Math.PI/2;
+        ctx.lineTo(nnx+Math.cos(perp)*6,nny+Math.sin(perp)*6);
+        ctx.lineTo(hbx+Math.cos(perp)*6,hby+Math.sin(perp)*6);
+        ctx.lineTo(hbx-Math.cos(perp)*6,hby-Math.sin(perp)*6);
+        ctx.lineTo(nnx-Math.cos(perp)*6,nny+Math.sin(perp)*6);
+        ctx.closePath(); ctx.fill();
+        atom(hbx,hby,20,7,'#60a5fa','#60a5fa','H',bondA);
+        ctx.restore();
+      }
+      // N atom in center
+      atom(nnx,nny,32,10,'#a78bfa','#a78bfa','N');
+      // Label
+      const molLabel=['','NH','NH₂','NH₃'][nb];
+      if (nb>0){
+        ctx.font='bold 13px monospace';ctx.fillStyle='#fb923c';
+        ctx.textAlign='center';ctx.textBaseline='top';
+        ctx.fillText(molLabel,nnx,nny+46);
+        ctx.font='10px system-ui,sans-serif';ctx.fillStyle='rgba(251,146,60,.55)';
+        ctx.fillText(`${nb} of 3 N−H bonds formed`,nnx,nny+62);
+      }
+    }
+
+    // Iron surface
+    drawIronSurface(catY, surfA);
+
+    // ── NH₃ rising (phase 5) ──────────────────────────────────
+    if (S.phase >= 5) {
+      const nh3y = S.nh3riseY;
+      const nh3x = cx - 50;
+      const spinT = stRef.current.t * 0.8;
+      // Draw 3D projected NH₃
+      drawNH3(ctx, nh3x, nh3y, 52, spinT * S.nh3spinA);
+
+      // Lone pair indicator
+      const lpA = p01(S.n, 0.90, 1.0);
+      if (lpA>0.05) {
+        ctx.save(); ctx.globalAlpha=lpA;
+        const lpg=ctx.createRadialGradient(nh3x,nh3y-44,0,nh3x,nh3y-44,26);
+        lpg.addColorStop(0,'rgba(167,139,250,0.55)');lpg.addColorStop(1,'rgba(167,139,250,0)');
+        ctx.fillStyle=lpg;ctx.beginPath();ctx.ellipse(nh3x,nh3y-44,14,24,0,0,Math.PI*2);ctx.fill();
+        ctx.font='10px system-ui,sans-serif';ctx.fillStyle='rgba(167,139,250,.7)';
+        ctx.textAlign='center';ctx.textBaseline='bottom';
+        ctx.fillText('lone pair',nh3x,nh3y-70);
+        ctx.restore();
+      }
+
+      // Bond angle annotation
+      const baA = p01(S.n, 0.92, 1.0);
+      if (baA>0.05){
+        ctx.save();ctx.globalAlpha=baA*0.7;
+        ctx.font='10px system-ui,sans-serif';ctx.fillStyle='rgba(203,213,225,.6)';
+        ctx.textAlign='left';ctx.textBaseline='middle';
+        ctx.fillText('H−N−H = 107°  (not 109.5° — lone pair compresses)',nh3x+60,nh3y+10);
+        ctx.font='10px monospace';ctx.fillStyle='rgba(74,222,128,.65)';ctx.textBaseline='top';
+        ctx.fillText('ΔH = −93 kJ/mol  (per 2 NH₃)',nh3x+60,nh3y+28);
+        ctx.restore();
+      }
+
+      ctx.font='bold 14px monospace';ctx.fillStyle='#4ade80';
+      ctx.textAlign='center';ctx.textBaseline='bottom';ctx.globalAlpha=S.p5;
+      ctx.fillText('NH₃',nh3x,nh3y-82);ctx.globalAlpha=1;
+    }
+
+    ctx.restore();
+  }
+
+  // ── Phase labels overlay ──────────────────────────────────────────
+  const phaseColors=['#a78bfa','#60a5fa','#f59e0b','#f87171','#fb923c','#4ade80'];
+  ctx.font='10px system-ui,sans-serif';
+  ctx.fillStyle=phaseColors[S.phase]+'aa';
+  ctx.textAlign='right';ctx.textBaseline='top';
+  ctx.fillText(`Phase ${S.phase+1}/6`,W-14,12);
+}
+
+// ── 3D NH₃ projection ─────────────────────────────────────────────
+function drawNH3(ctx, cx, cy, scale, spinAngle) {
+  // Trigonal pyramidal: N at center, 3 H at 107° bond angles
+  // Lone pair points "up" in local frame
+  const bondAngle = 107 * Math.PI/180;
+  // In a symmetric trigonal pyramidal, H positions:
+  // H lies at angle bondAngle from the N-lone_pair axis
+  const hY = -Math.cos(bondAngle) * scale;   // y in local frame (up = -y)
+  const hR = Math.sin(bondAngle) * scale;     // radial distance from axis
+  const hAngles = [0, 2*Math.PI/3, 4*Math.PI/3];
+  // Project with spin around vertical axis + 25° tilt
+  const TILT = 0.42;  // sin of viewer elevation angle
+  const COST = Math.sqrt(1-TILT*TILT);
+
+  function project3D(lx,ly,lz) {
+    // Rotate around Y axis by spinAngle
+    const rx = lx*Math.cos(spinAngle) + lz*Math.sin(spinAngle);
+    const ry = ly;
+    const rz = -lx*Math.sin(spinAngle) + lz*Math.cos(spinAngle);
+    // Tilt around X axis by ~25°
+    const fx = rx;
+    const fy = ry*COST - rz*TILT;
+    const fz = ry*TILT + rz*COST;
+    return {x:cx+fx, y:cy+fy, depth:fz};
+  }
+
+  const nPos = project3D(0,0,0);
+  const hPos = hAngles.map(a => project3D(hR*Math.cos(a), hY, hR*Math.sin(a)));
+
+  // Sort H atoms by depth for correct occlusion
+  const sorted = hPos.map((p,i)=>({p,i})).sort((a,b)=>a.p.depth-b.p.depth);
+
+  // Draw bonds (back to front)
+  sorted.forEach(({p,i})=>{
+    const df = 0.4 + 0.6*Math.max(0,(p.depth+scale)/(2*scale));
+    const bg=ctx.createLinearGradient(nPos.x,nPos.y,p.x,p.y);
+    bg.addColorStop(0,`rgba(167,139,250,${0.6*df})`);
+    bg.addColorStop(0.4,`rgba(251,146,60,${0.7*df})`);
+    bg.addColorStop(1,`rgba(96,165,250,${0.5*df})`);
+    ctx.lineWidth=6*df; ctx.strokeStyle=bg;
+    ctx.beginPath();ctx.moveTo(nPos.x,nPos.y);ctx.lineTo(p.x,p.y);ctx.stroke();
+  });
+
+  // Draw atoms (back to front)
+  sorted.forEach(({p,i})=>{
+    const df=0.35+0.65*Math.max(0,(p.depth+scale)/(2*scale));
+    const r=10*df;
+    const g=ctx.createRadialGradient(p.x,p.y,0,p.x,p.y,r*3.5);
+    g.addColorStop(0,'rgba(255,255,255,0.9)');g.addColorStop(0.3,'rgba(96,165,250,0.7)');g.addColorStop(1,'rgba(96,165,250,0)');
+    ctx.fillStyle=g;ctx.beginPath();ctx.arc(p.x,p.y,r*3.5,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='white';ctx.beginPath();ctx.arc(p.x,p.y,r,0,Math.PI*2);ctx.fill();
+    ctx.font=`bold ${Math.round(r*1.0)}px monospace`;ctx.fillStyle='#60a5fa';
+    ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('H',p.x,p.y);
+  });
+
+  // N nucleus (always on top)
+  const ng=ctx.createRadialGradient(nPos.x,nPos.y,0,nPos.x,nPos.y,18);
+  ng.addColorStop(0,'rgba(255,255,255,.95)');ng.addColorStop(0.3,'rgba(167,139,250,.8)');ng.addColorStop(1,'rgba(167,139,250,0)');
+  ctx.fillStyle=ng;ctx.beginPath();ctx.arc(nPos.x,nPos.y,18,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='white';ctx.beginPath();ctx.arc(nPos.x,nPos.y,12,0,Math.PI*2);ctx.fill();
+  ctx.font='bold 10px monospace';ctx.fillStyle='#a78bfa';ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.fillText('N',nPos.x,nPos.y);
+}
+
+// ── Rounded rect helper ───────────────────────────────────────────────
+function roundRect(ctx,x,y,w,h,r){
+  ctx.beginPath();ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);ctx.arcTo(x+w,y,x+w,y+r,r);
+  ctx.lineTo(x+w,y+h-r);ctx.arcTo(x+w,y+h,x+w-r,y+h,r);ctx.lineTo(x+r,y+h);
+  ctx.arcTo(x,y+h,x,y+h-r,r);ctx.lineTo(x,y+r);ctx.arcTo(x,y,x+r,y,r);ctx.closePath();
+}
+
+// ── Electron Detail Canvas ────────────────────────────────────────────
+// Renders orbital-level visualization synchronized with the macro animation.
+// Phase-aware: each phase shows the most relevant electron-level event.
+
+function drawElectronScene(ctx, S, t) {
+  const W = CW, H = CH, cx = W / 2, cy = H / 2;
+  ctx.clearRect(0, 0, W, H);
+  const bg = ctx.createLinearGradient(0, 0, 0, H);
+  bg.addColorStop(0, '#080e1a'); bg.addColorStop(1, '#0c1020');
+  ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+
+  // ── Shared helpers ──────────────────────────────────────────────
+  function glow(x, y, r, color, a = 0.7) {
+    const [cr, cg, cb] = hex2rgb(color);
+    const g = ctx.createRadialGradient(x, y, 0, x, y, r);
+    g.addColorStop(0, `rgba(${cr},${cg},${cb},${a})`);
+    g.addColorStop(0.45, `rgba(${cr},${cg},${cb},${a * 0.45})`);
+    g.addColorStop(1, `rgba(${cr},${cg},${cb},0)`);
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+  }
+
+  function lobe(x, y, rx, ry, angle, color, a = 0.55) {
+    const [cr, cg, cb] = hex2rgb(color);
+    const g = ctx.createRadialGradient(x, y, 0, x, y, Math.max(rx, ry));
+    g.addColorStop(0, `rgba(${cr},${cg},${cb},${a})`);
+    g.addColorStop(0.5, `rgba(${cr},${cg},${cb},${a * 0.5})`);
+    g.addColorStop(1, `rgba(${cr},${cg},${cb},0)`);
+    ctx.save(); ctx.translate(x, y); ctx.rotate(angle);
+    ctx.fillStyle = g; ctx.beginPath(); ctx.ellipse(0, 0, rx, ry, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+  }
+
+  function electronDot(x, y, color, r = 5) {
+    glow(x, y, r * 3, color, 0.6);
+    ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.arc(x, y, r * 0.65, 0, Math.PI * 2); ctx.fill();
+  }
+
+  function label(x, y, text, color = 'rgba(203,213,225,.65)', size = 11, align = 'center', base = 'middle') {
+    ctx.font = `${size}px system-ui,sans-serif`;
+    ctx.fillStyle = color; ctx.textAlign = align; ctx.textBaseline = base;
+    ctx.fillText(text, x, y);
+  }
+
+  function monoLabel(x, y, text, color = 'rgba(203,213,225,.65)', size = 11) {
+    ctx.font = `${size}px 'Courier New',monospace`;
+    ctx.fillStyle = color; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(text, x, y);
+  }
+
+  function arrow(x1, y1, x2, y2, color, alpha = 0.7, width = 2) {
+    ctx.save(); ctx.globalAlpha = alpha;
+    ctx.strokeStyle = color; ctx.lineWidth = width;
+    ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+    const ang = Math.atan2(y2 - y1, x2 - x1);
+    ctx.fillStyle = color; ctx.beginPath();
+    ctx.moveTo(x2, y2);
+    ctx.lineTo(x2 - 10 * Math.cos(ang - 0.4), y2 - 10 * Math.sin(ang - 0.4));
+    ctx.lineTo(x2 - 10 * Math.cos(ang + 0.4), y2 - 10 * Math.sin(ang + 0.4));
+    ctx.closePath(); ctx.fill();
+    ctx.restore();
+  }
+
+  function flowParticles(storeKey, x1, y1, x2, y2, color, speed, n, t) {
+    // Animated dots flowing along a path
+    for (let i = 0; i < n; i++) {
+      const phase = ((t * speed + i / n) % 1);
+      const px = lerp(x1, x2, phase), py = lerp(y1, y2, phase);
+      const fade = Math.sin(phase * Math.PI);
+      ctx.save(); ctx.globalAlpha = fade * 0.85;
+      glow(px, py, 10, color, 0.7);
+      ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.arc(px, py, 3, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+    }
+  }
+
+  function bondOrderMeter(x, y, order, maxOrder = 3) {
+    const barH = 100, barW = 14;
+    ctx.fillStyle = 'rgba(255,255,255,.06)';
+    roundRect(ctx, x - barW / 2, y - barH / 2, barW, barH, 4);
+    ctx.fill();
+    const fillH = (order / maxOrder) * barH;
+    const col = order > 1.5 ? '#a78bfa' : order > 0.5 ? '#fb923c' : '#f87171';
+    const fg = ctx.createLinearGradient(0, y + barH / 2, 0, y + barH / 2 - fillH);
+    fg.addColorStop(0, col + '44'); fg.addColorStop(1, col);
+    ctx.fillStyle = fg;
+    roundRect(ctx, x - barW / 2 + 1, y + barH / 2 - fillH, barW - 2, fillH, 3);
+    ctx.fill();
+    monoLabel(x, y - barH / 2 - 12, 'bond', 'rgba(148,163,184,.4)', 9);
+    monoLabel(x, y - barH / 2 - 22, 'order', 'rgba(148,163,184,.4)', 9);
+    monoLabel(x, y + barH / 2 + 12, order.toFixed(1), col, 12);
+  }
+
+  // ── Phase title ─────────────────────────────────────────────────
+  const phaseTitles = [
+    'N₂ Molecular Orbitals — The σ* LUMO is Iron\'s Target',
+    'Reactant Orbitals — What Each Molecule Brings',
+    'Fe–N₂ Orbital Overlap — Catalysis Begins',
+    'Back-Donation: Fe 3d → N₂ σ*  (The Rate-Limiting Step)',
+    'N–H Bond Formation at the Valence Level',
+    'NH₃ sp³ Hybridisation — Lone Pair Visible',
+  ];
+  ctx.font = 'bold 13px system-ui,sans-serif';
+  ctx.fillStyle = 'rgba(203,213,225,.7)'; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+  ctx.fillText(phaseTitles[S.phase], cx, 10);
+
+  // ══════════════════════════════════════════════════════════════════
+  // Phase 0 — N₂ MO diagram
+  // ══════════════════════════════════════════════════════════════════
+  if (S.phase === 0) {
+    const mx = cx, top = 55, spacing = 44;
+    // MO energy levels (simplified valence MOs only)
+    // From bottom to top: σ_2s, σ*_2s, π_2p×2, σ_2p, π*_2p×2 (empty), σ*_2p (empty LUMO)
+    const levels = [
+      { e: top + spacing * 5.5, label: 'σ  (2s bonding)',   color: '#60a5fa', filled: 2, type: 'bond' },
+      { e: top + spacing * 4.5, label: 'σ* (2s antibond)', color: '#f87171', filled: 2, type: 'anti', dashed: true },
+      { e: top + spacing * 3.2, label: 'σ  (2p bonding)',   color: '#60a5fa', filled: 2, type: 'bond' },
+      { e: top + spacing * 2.4, label: 'π  (2p) × 2',      color: '#a78bfa', filled: 4, type: 'bond' },
+      { e: top + spacing * 1.2, label: 'π* (2p) × 2',      color: '#fb923c', filled: 0, type: 'anti', dashed: true },
+      { e: top + spacing * 0.2, label: 'σ* (2p) — LUMO',   color: '#f87171', filled: 0, type: 'anti', highlight: true },
+    ];
+
+    levels.forEach(lv => {
+      const lineX1 = mx - 70, lineX2 = mx + 70;
+      // Energy level line
+      ctx.setLineDash(lv.dashed ? [4, 3] : []);
+      ctx.strokeStyle = lv.color + (lv.filled === 0 ? '55' : 'cc');
+      ctx.lineWidth = lv.highlight ? 2.5 : 1.5;
+      ctx.beginPath(); ctx.moveTo(lineX1, lv.e); ctx.lineTo(lineX2, lv.e); ctx.stroke();
+      ctx.setLineDash([]);
+
+      // LUMO highlight box
+      if (lv.highlight) {
+        const p01val = S.p0;
+        ctx.save(); ctx.globalAlpha = 0.4 + 0.3 * Math.sin(t * 3);
+        ctx.strokeStyle = '#f87171'; ctx.lineWidth = 1.2; ctx.setLineDash([3, 2]);
+        roundRect(ctx, lineX1 - 8, lv.e - 16, (lineX2 - lineX1) + 16, 32, 5);
+        ctx.stroke(); ctx.setLineDash([]);
+        ctx.restore();
+        // Pulsing label
+        ctx.font = 'bold 11px system-ui,sans-serif';
+        ctx.fillStyle = '#f87171'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+        ctx.fillText('← Iron attacks here', lineX2 + 12, lv.e);
+      }
+
+      // Electrons as arrows (↑ ↓ pairs)
+      const nPairs = Math.floor(lv.filled / 2), hasUnpaired = lv.filled % 2 === 1;
+      const startX = mx - (nPairs * 14) / 2;
+      for (let i = 0; i < nPairs; i++) {
+        const ex = startX + i * 14;
+        ctx.font = 'bold 13px monospace'; ctx.fillStyle = lv.color + 'dd';
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText('↑↓', ex + 7, lv.e);
+      }
+
+      // Label
+      label(lineX1 - 10, lv.e, lv.label, lv.color + (lv.filled === 0 ? '77' : 'bb'), 10, 'right');
+    });
+
+    // Axis label
+    ctx.save(); ctx.globalAlpha = 0.25;
+    ctx.strokeStyle = 'rgba(148,163,184,1)'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(mx - 110, top - 5); ctx.lineTo(mx - 110, top + spacing * 6); ctx.stroke();
+    arrow(mx - 110, top + 5, mx - 110, top - 5, 'rgba(148,163,184,1)', 0.3);
+    label(mx - 110, top + spacing * 3, 'energy', 'rgba(148,163,184,.35)', 9, 'center');
+    ctx.restore();
+
+    // Bond types legend
+    label(mx, H - 22, 'Blue = bonding (stabilising) · Purple = π bonding · Orange/Red = antibonding (destabilising) · Dashed = empty', 'rgba(148,163,184,.35)', 10);
+    label(mx, H - 8, 'N₂ has 10 valence electrons filling all bonding MOs — net bond order = 3', 'rgba(203,213,225,.5)', 11);
+  }
+
+  // ══════════════════════════════════════════════════════════════════
+  // Phase 1 — Reactant orbitals summary
+  // ══════════════════════════════════════════════════════════════════
+  if (S.phase === 1) {
+    const a = S.p1;
+    // N₂ left, H₂ centre-right, Fe right
+    // N₂ — compact triple bond cloud with LUMO hint
+    const n2x = cx - 200, n2y = cy;
+    ctx.save(); ctx.globalAlpha = Math.min(1, a * 2);
+    // σ cloud
+    lobe(n2x, n2y, 55, 18, 0, '#60a5fa', 0.55);
+    // π lobes
+    [[n2y - 32], [n2y + 32]].forEach(([py]) => lobe(n2x, py, 42, 15, 0, '#a78bfa', 0.45));
+    // LUMO ghost (empty σ*)
+    ctx.setLineDash([4, 3]);
+    ctx.strokeStyle = '#f87171aa'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.ellipse(n2x, n2y - 50, 38, 14, 0, 0, Math.PI * 2); ctx.stroke();
+    ctx.beginPath(); ctx.ellipse(n2x, n2y + 50, 38, 14, 0, 0, Math.PI * 2); ctx.stroke();
+    ctx.setLineDash([]);
+    label(n2x, n2y - 70, 'σ* LUMO (empty)', '#f87171aa', 10);
+    // Nuclei
+    ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(n2x - 28, n2y, 8, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(n2x + 28, n2y, 8, 0, Math.PI*2); ctx.fill();
+    label(n2x, n2y + 70, 'N₂ — 10 valence e⁻', '#a78bfa', 11);
+    label(n2x, n2y + 84, 'bond order 3 · σ* LUMO empty', 'rgba(148,163,184,.45)', 10);
+    ctx.restore();
+
+    // H₂ — small, simple
+    ctx.save(); ctx.globalAlpha = Math.min(1, a * 2);
+    const h2x = cx, h2y = cy;
+    lobe(h2x, h2y, 38, 16, 0, '#60a5fa', 0.5);
+    ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(h2x - 18, h2y, 6, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(h2x + 18, h2y, 6, 0, Math.PI*2); ctx.fill();
+    label(h2x, h2y + 50, 'H−H  (×3)', '#60a5fa', 11);
+    label(h2x, h2y + 64, '2 e⁻ each in σ bond', 'rgba(148,163,184,.45)', 10);
+    ctx.restore();
+
+    // Fe d-orbital
+    ctx.save(); ctx.globalAlpha = Math.min(1, a * 2);
+    const fex = cx + 200, fey = cy;
+    // dz² orbital: figure-8 vertical + torus
+    lobe(fex, fey - 38, 18, 32, 0, '#f59e0b', 0.6);   // upper lobe
+    lobe(fex, fey + 38, 18, 32, 0, '#f59e0b', 0.6);   // lower lobe
+    lobe(fex, fey, 28, 10, 0, '#f59e0b', 0.35);        // torus (equatorial)
+    // Fe d electrons (6 in 3d)
+    const elt = t * 2.2;
+    for (let i = 0; i < 6; i++) {
+      const ea = elt + i * (Math.PI * 2 / 6);
+      const er = 24, eEx = fex + Math.cos(ea) * er * 0.7, eEy = fey + Math.sin(ea) * er * 0.45;
+      electronDot(eEx, eEy, '#fbbf24', 4);
+    }
+    ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(fex, fey, 9, 0, Math.PI*2); ctx.fill();
+    ctx.font = 'bold 8px monospace'; ctx.fillStyle = '#f59e0b';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('Fe', fex, fey);
+    label(fex, fey + 72, 'Fe — [Ar] 3d⁶ 4s²', '#f59e0b', 11);
+    label(fex, fey + 86, 'd-orbital shown: partially filled', 'rgba(148,163,184,.45)', 10);
+    label(fex - 20, fey - 68, 'dz²', '#fbbf2488', 10, 'right');
+    ctx.restore();
+  }
+
+  // ══════════════════════════════════════════════════════════════════
+  // Phase 2 — Fe–N₂ orbital overlap beginning
+  // ══════════════════════════════════════════════════════════════════
+  if (S.phase === 2) {
+    const a = Math.min(1, S.p2 * 1.5);
+    const fex = cx - 110, fey = cy + 30;
+    const n2x = cx + 80, n2y = cy - 20;
+
+    ctx.save(); ctx.globalAlpha = a;
+
+    // Fe dz² orbital pointing toward N₂
+    lobe(fex, fey - 50, 18, 40, 0, '#f59e0b', 0.6);
+    lobe(fex, fey + 30, 18, 22, 0, '#f59e0b', 0.4);
+    lobe(fex, fey, 26, 10, 0, '#f59e0b', 0.3);
+    ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(fex, fey, 9, 0, Math.PI*2); ctx.fill();
+    monoLabel(fex, fey, 'Fe', '#f59e0b', 8);
+    label(fex, fey + 55, 'Fe 3d dz²', '#f59e0b', 10);
+    label(fex, fey + 68, '(d-electrons available)', 'rgba(148,163,184,.4)', 9);
+
+    // N₂ approaching — end-on to Fe (N-end closest)
+    lobe(n2x, n2y, 16, 42, 0, '#60a5fa', 0.5);  // σ bonding density
+    [[n2y - 28], [n2y + 28]].forEach(([py]) =>
+      lobe(n2x, py, 32, 12, 0, '#a78bfa', 0.4));  // π
+    // σ* LUMO — the empty antibonding orbital (red outline, faint fill)
+    const lumoA = 0.1 + 0.15 * S.p2;
+    const lg = ctx.createRadialGradient(n2x, n2y - 65, 0, n2x, n2y - 65, 28);
+    lg.addColorStop(0, `rgba(248,113,113,${lumoA})`);
+    lg.addColorStop(1, 'rgba(248,113,113,0)');
+    ctx.fillStyle = lg; ctx.beginPath(); ctx.ellipse(n2x, n2y - 62, 22, 14, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.setLineDash([3, 2]); ctx.strokeStyle = '#f87171aa'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.ellipse(n2x, n2y - 62, 22, 14, 0, 0, Math.PI * 2); ctx.stroke();
+    ctx.setLineDash([]);
+    label(n2x + 30, n2y - 62, 'σ* LUMO', '#f87171aa', 9, 'left');
+
+    ctx.fillStyle = '#fff';
+    ctx.beginPath(); ctx.arc(n2x, n2y - 25, 8, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(n2x, n2y + 25, 8, 0, Math.PI*2); ctx.fill();
+    monoLabel(n2x, n2y - 25, 'N', '#a78bfa', 8);
+    monoLabel(n2x, n2y + 25, 'N', '#a78bfa', 8);
+    label(n2x, n2y + 72, 'N₂  (end-on to Fe surface)', '#a78bfa', 10);
+
+    // Overlap zone
+    const ovA = ease3(S.p2) * 0.45;
+    const og = ctx.createRadialGradient(cx - 25, cy - 5, 0, cx - 25, cy - 5, 55);
+    og.addColorStop(0, `rgba(251,191,36,${ovA})`);
+    og.addColorStop(1, 'rgba(251,191,36,0)');
+    ctx.fillStyle = og; ctx.beginPath(); ctx.arc(cx - 25, cy - 5, 55, 0, Math.PI * 2); ctx.fill();
+    label(cx - 25, cy - 5, 'orbital overlap\nbeginning', 'rgba(251,191,36,.7)', 10);
+
+    ctx.restore();
+
+    // Distance label
+    const dist = lerp(2.5, 1.8, S.p2);
+    label(cx - 25, H - 14, `Fe–N distance: ${dist.toFixed(1)} Å  (equilibrium chemisorption: ~1.8 Å)`,
+      'rgba(148,163,184,.35)', 10);
+  }
+
+  // ══════════════════════════════════════════════════════════════════
+  // Phase 3 — Back-donation: Fe 3d → N₂ σ*  (THE MAIN EVENT)
+  // ══════════════════════════════════════════════════════════════════
+  if (S.phase === 3) {
+    const prog = S.p3;  // 0→1 through phase 3
+    const bondOrder = lerp(3.0, 0.0, ease3(prog));
+
+    const fex = 140, fey = cy + 20;  // Fe atom
+    const n2cx = cx + 60, n2cy = cy; // N₂ centre
+
+    // ── Fe dz² orbital ─────────────────────────────────────────
+    // Upper lobe points toward N₂ (right)
+    const feLobeA = lerp(0.75, 0.3, prog);  // shrinks as e⁻ leave
+    lobe(fex + 30, fey, 44, 16, 0, '#f59e0b', feLobeA);   // right lobe → N₂
+    lobe(fex - 30, fey, 30, 16, 0, '#f59e0b', feLobeA * 0.7);  // left lobe
+    lobe(fex, fey, 16, 8, 0, '#f59e0b', feLobeA * 0.5);   // torus
+    // Fe d-electrons (some flying toward N₂)
+    const nFlight = Math.round(lerp(0, 2, ease3(prog)));
+    for (let i = 0; i < 6 - nFlight; i++) {
+      const ea = t * 1.8 + i * (Math.PI * 2 / (6 - nFlight));
+      electronDot(fex + Math.cos(ea) * 20, fey + Math.sin(ea) * 12, '#fbbf24', 4);
+    }
+    ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(fex, fey, 9, 0, Math.PI*2); ctx.fill();
+    monoLabel(fex, fey, 'Fe', '#f59e0b', 8);
+    label(fex, fey + 52, 'Fe 3d orbital', '#f59e0b', 11);
+    label(fex, fey + 65, `${6 - nFlight} d-electrons remain`, '#fbbf2488', 10);
+
+    // ── Back-donation flow: Fe 3d → N₂ σ* ─────────────────────
+    const bdA = prog;
+    if (bdA > 0.05) {
+      // Glowing flow channel
+      const flowG = ctx.createLinearGradient(fex + 40, fey, n2cx - 20, n2cy - 52);
+      flowG.addColorStop(0, `rgba(248,113,113,0)`);
+      flowG.addColorStop(0.3, `rgba(248,113,113,${bdA * 0.4})`);
+      flowG.addColorStop(0.7, `rgba(248,113,113,${bdA * 0.55})`);
+      flowG.addColorStop(1, `rgba(248,113,113,0)`);
+      ctx.fillStyle = flowG;
+      ctx.beginPath();
+      ctx.moveTo(fex + 40, fey - 8);
+      ctx.quadraticCurveTo(cx - 20, cy - 30, n2cx - 20, n2cy - 52);
+      ctx.quadraticCurveTo(cx - 20, cy - 20, fex + 40, fey + 8);
+      ctx.closePath(); ctx.fill();
+      // Particle flow
+      flowParticles('bd', fex + 40, fey, n2cx - 20, n2cy - 52, '#f87171', 0.55, 5, t);
+      // Arrow label
+      ctx.save(); ctx.globalAlpha = Math.min(1, bdA * 1.5);
+      label(cx - 30, cy - 38, 'back-donation', '#f87171', 11);
+      label(cx - 30, cy - 24, 'Fe 3d → σ* LUMO', '#f87171bb', 10);
+      ctx.restore();
+    }
+
+    // ── Forward donation: N₂ σ → Fe ────────────────────────────
+    if (prog > 0.15) {
+      const fdA = Math.min(1, (prog - 0.15) / 0.35) * 0.5;
+      flowParticles('fd', n2cx - 20, n2cy + 28, fex + 40, fey + 10, '#60a5fa', 0.4, 3, t * 0.7);
+      ctx.save(); ctx.globalAlpha = fdA * 1.4;
+      label(cx - 50, cy + 40, 'forward donation', '#60a5fa', 10);
+      label(cx - 50, cy + 53, 'N₂ σ → Fe d', '#60a5faaa', 9);
+      ctx.restore();
+    }
+
+    // ── N₂ molecule (stretching) ────────────────────────────────
+    const bondLen = lerp(28, 65, ease3(prog));
+    const n1x = n2cx - bondLen, n2x2 = n2cx + bondLen;
+
+    // σ bond density (weakening)
+    const sigA = lerp(0.55, 0.05, ease3(prog));
+    const sg = ctx.createLinearGradient(n1x, n2cy, n2x2, n2cy);
+    sg.addColorStop(0, 'rgba(96,165,250,0)'); sg.addColorStop(0.5, `rgba(96,165,250,${sigA})`); sg.addColorStop(1, 'rgba(96,165,250,0)');
+    ctx.fillStyle = sg; ctx.beginPath(); ctx.ellipse(n2cx, n2cy, bondLen + 15, 15, 0, 0, Math.PI*2); ctx.fill();
+    // π lobes (fading)
+    const piA = lerp(0.45, 0.04, ease3(prog));
+    [[n2cy - 28], [n2cy + 28]].forEach(([py]) =>
+      lobe(n2cx, py, Math.min(bondLen, 42), 14, 0, '#a78bfa', piA));
+    // σ* filling with red glow (the back-donation accumulating)
+    const lumoFill = lerp(0.05, 0.75, ease3(prog));
+    const lfG = ctx.createRadialGradient(n2cx, n2cy - 54, 0, n2cx, n2cy - 54, 34);
+    lfG.addColorStop(0, `rgba(248,113,113,${lumoFill})`);
+    lfG.addColorStop(0.5, `rgba(248,113,113,${lumoFill * 0.5})`);
+    lfG.addColorStop(1, 'rgba(248,113,113,0)');
+    ctx.fillStyle = lfG; ctx.beginPath(); ctx.ellipse(n2cx, n2cy - 54, 30, 18, 0, 0, Math.PI*2); ctx.fill();
+    ctx.setLineDash([3, 2]); ctx.strokeStyle = `rgba(248,113,113,${lumoFill + 0.2})`; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.ellipse(n2cx, n2cy - 54, 30, 18, 0, 0, Math.PI*2); ctx.stroke();
+    ctx.setLineDash([]);
+    label(n2cx, n2cy - 82, `σ* filling (${Math.round(lumoFill * 100)}%)`, '#f87171', 10);
+
+    // N nuclei
+    if (bondOrder > 0.15) {
+      ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(n1x, n2cy, 9, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(n2x2, n2cy, 9, 0, Math.PI*2); ctx.fill();
+      monoLabel(n1x, n2cy, 'N', '#a78bfa', 8);
+      monoLabel(n2x2, n2cy, 'N', '#a78bfa', 8);
+      label(n2cx, n2cy + 52, `N–N distance: ${lerp(110, 190, ease3(prog)).toFixed(0)} pm`, 'rgba(148,163,184,.5)', 10);
+    } else {
+      // Broken — two separate N atoms
+      const sep = lerp(65, 100, ease3(Math.max(0, prog - 0.85) / 0.15));
+      [n2cx - sep, n2cx + sep].forEach(nx => {
+        glow(nx, n2cy, 30, '#a78bfa', 0.55);
+        ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(nx, n2cy, 9, 0, Math.PI*2); ctx.fill();
+        monoLabel(nx, n2cy, 'N*', '#a78bfa', 8);
+      });
+      label(n2cx, n2cy + 52, 'N≡N broken — two N* adsorbed on Fe', '#4ade80', 11);
+    }
+    label(n2cx, n2cy + 68, 'N₂ molecular orbitals', '#a78bfa', 10);
+
+    // ── Bond order meter ────────────────────────────────────────
+    bondOrderMeter(W - 60, cy, bondOrder);
+    label(W - 60, cy + 70, 'N–N', 'rgba(148,163,184,.4)', 9);
+
+    // ── Why this works ──────────────────────────────────────────
+    ctx.save(); ctx.globalAlpha = 0.45;
+    label(cx + 70, H - 22, 'Blyholder model: Fe donates e⁻ into N₂ antibonding orbital,', 'rgba(148,163,184,1)', 9.5);
+    label(cx + 70, H - 9,  'reducing bond order and enabling dissociation at lower temperature.', 'rgba(148,163,184,1)', 9.5);
+    ctx.restore();
+  }
+
+  // ══════════════════════════════════════════════════════════════════
+  // Phase 4 — N–H bond formation at valence level
+  // ══════════════════════════════════════════════════════════════════
+  if (S.phase === 4) {
+    const prog = S.p4;
+    const nb = clamp(Math.floor(prog * 3.4), 0, 3);
+    const nx = cx - 30, ny = cy;
+
+    // N atom — show 5 valence electrons in 2p (needs 3 more to fill)
+    glow(nx, ny, 55, '#a78bfa', 0.4);
+    ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(nx, ny, 11, 0, Math.PI*2); ctx.fill();
+    monoLabel(nx, ny, 'N', '#a78bfa', 10);
+
+    // Show N valence electrons in 2p orbitals
+    // N has 5 valence: 2s² 2p³  → one in each 2p, waiting to pair
+    const nAngles = [210, 330, 90, 150, 270];  // 5 electron positions
+    nAngles.slice(0, 5 - nb).forEach((ang, i) => {
+      const ea = ang * Math.PI / 180;
+      electronDot(nx + Math.cos(ea) * 36, ny + Math.sin(ea) * 36, '#a78bfa', 4.5);
+    });
+
+    // H atoms approaching and bonding
+    const hAngles = [210, 330, 90];
+    const NHR = 80;
+    hAngles.forEach((ang, i) => {
+      const formed = i < nb;
+      const forming = i === nb && prog > 0;
+      const ea = ang * Math.PI / 180;
+      const htx = nx + Math.cos(ea) * NHR;
+      const hty = ny + Math.sin(ea) * NHR;
+
+      if (formed || forming) {
+        const bondProg = formed ? 1 : Math.min(1, (prog * 3.4 - i) * 1.5);
+        // Bond cloud forming
+        const bdx = nx + Math.cos(ea) * NHR * 0.5;
+        const bdy = ny + Math.sin(ea) * NHR * 0.5;
+        const bg2 = ctx.createRadialGradient(bdx, bdy, 0, bdx, bdy, 30);
+        bg2.addColorStop(0, `rgba(251,146,60,${bondProg * 0.6})`);
+        bg2.addColorStop(1, 'rgba(251,146,60,0)');
+        ctx.fillStyle = bg2; ctx.beginPath(); ctx.arc(bdx, bdy, 30, 0, Math.PI*2); ctx.fill();
+
+        // H atom
+        glow(htx, hty, 28, '#60a5fa', bondProg * 0.6);
+        ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(htx, hty, 8, 0, Math.PI*2); ctx.fill();
+        monoLabel(htx, hty, 'H', '#60a5fa', 8);
+
+        // Two electrons in bond (one from N, one from H)
+        const e1x = nx + Math.cos(ea) * NHR * 0.38;
+        const e1y = ny + Math.sin(ea) * NHR * 0.38;
+        const e2x = nx + Math.cos(ea) * NHR * 0.60;
+        const e2y = ny + Math.sin(ea) * NHR * 0.60;
+        if (bondProg > 0.5) {
+          electronDot(e1x + Math.cos(t * 2.2 + i) * 4, e1y + Math.sin(t * 2.2 + i) * 4, '#fbbf24', 4);
+          electronDot(e2x + Math.cos(t * 2.2 + i + Math.PI) * 4, e2y + Math.sin(t * 2.2 + i + Math.PI) * 4, '#fbbf24', 4);
+        }
+
+        const bondLabel = ['N−H #1','N−H #2','N−H #3'][i];
+        label(htx, hty + 22, bondLabel, '#fb923c', 9.5);
+      } else {
+        // H not yet in frame — show approaching
+        const ax = htx + Math.cos(ea) * 30;
+        const ay = hty + Math.sin(ea) * 30;
+        ctx.save(); ctx.globalAlpha = 0.3;
+        glow(ax, ay, 18, '#60a5fa', 0.4);
+        ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(ax, ay, 6, 0, Math.PI*2); ctx.fill();
+        monoLabel(ax, ay, 'H*', '#60a5fa', 7);
+        ctx.restore();
+      }
+    });
+
+    // Shell fill indicator
+    const shellFill = 5 + nb;
+    label(nx, ny + 85, `N valence shell: ${shellFill}/8 electrons`, shellFill === 8 ? '#4ade80' : '#fb923c', 12);
+    if (shellFill === 8) label(nx, ny + 100, '✓ Octet satisfied — NH₃ complete', '#4ade80', 11);
+  }
+
+  // ══════════════════════════════════════════════════════════════════
+  // Phase 5 — NH₃ sp³ hybridisation + lone pair
+  // ══════════════════════════════════════════════════════════════════
+  if (S.phase === 5) {
+    const prog = S.p5;
+    const mx2 = cx - 30, my = cy - 10;
+
+    // sp³ hybrid orbital diagram (simplified 2D cross-section)
+    // Four equivalent lobes: 3 bonding pairs + 1 lone pair
+    // Arranged roughly tetrahedral, viewed at ~25° elevation
+    const hybAngles = [
+      { ang: 210 * Math.PI / 180, type: 'bond',   label: 'N−H bond pair' },
+      { ang: 330 * Math.PI / 180, type: 'bond',   label: 'N−H bond pair' },
+      { ang: 90  * Math.PI / 180, type: 'bond',   label: 'N−H bond pair' },
+      { ang: 270 * Math.PI / 180, type: 'lone',   label: 'Lone pair (larger, more diffuse)' },
+    ];
+    const LORB = 70;  // orbital lobe reach
+
+    hybAngles.forEach(({ ang, type, label: lbl }) => {
+      const isLone = type === 'lone';
+      const lobeColor = isLone ? '#a78bfa' : '#fb923c';
+      const lobeA = isLone ? 0.62 : 0.48;
+      const lobeR = isLone ? 56 : 42;   // lone pair is larger
+      const ex = mx2 + Math.cos(ang) * LORB * (isLone ? 0.85 : 0.7);
+      const ey = my  + Math.sin(ang) * LORB * (isLone ? 0.85 : 0.7);
+
+      ctx.save(); ctx.globalAlpha = Math.min(1, prog * 1.5);
+      lobe(ex, ey, lobeR, lobeR * 0.62, 0, lobeColor, lobeA);
+
+      // Two electrons in each orbital
+      for (let k = 0; k < 2; k++) {
+        const oA = t * (isLone ? 1.2 : 1.8) + k * Math.PI + ang;
+        const er = lobeR * 0.35;
+        electronDot(ex + Math.cos(oA) * er * 0.6, ey + Math.sin(oA) * er * 0.6,
+          isLone ? '#a78bfa' : '#fbbf24', 4.5);
+      }
+
+      if (!isLone) {
+        // H atom at end of bonding orbital
+        const hx = mx2 + Math.cos(ang) * LORB * 1.35;
+        const hy = my  + Math.sin(ang) * LORB * 1.35;
+        ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(hx, hy, 8, 0, Math.PI*2); ctx.fill();
+        monoLabel(hx, hy, 'H', '#60a5fa', 8);
+      }
+
+      // Orbital label (fade in)
+      ctx.globalAlpha = Math.min(1, (prog - 0.3) * 2.5);
+      const lblx = mx2 + Math.cos(ang) * LORB * (isLone ? 1.65 : 1.55);
+      const lbly = my  + Math.sin(ang) * LORB * (isLone ? 1.65 : 1.55);
+      label(lblx, lbly, lbl, isLone ? '#a78bfa' : '#fb923caa', 9);
+
+      ctx.restore();
+    });
+
+    // N nucleus
+    glow(mx2, my, 20, '#a78bfa', 0.5);
+    ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(mx2, my, 11, 0, Math.PI*2); ctx.fill();
+    monoLabel(mx2, my, 'N', '#a78bfa', 10);
+
+    // Bond angle annotation (107° arc)
+    const baA = Math.min(1, (prog - 0.4) * 2.5);
+    if (baA > 0.05) {
+      ctx.save(); ctx.globalAlpha = baA * 0.7;
+      const a1 = 210 * Math.PI / 180, a2 = 330 * Math.PI / 180;
+      const arcR = 45;
+      ctx.strokeStyle = '#fbbf2488'; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.arc(mx2, my, arcR, a1 + 0.15, a2 - 0.15); ctx.stroke();
+      const midAng = (a1 + a2) / 2;
+      label(mx2 + Math.cos(midAng) * (arcR + 14), my + Math.sin(midAng) * (arcR + 14),
+        '107°', '#fbbf24', 11);
+      label(mx2 + Math.cos(midAng) * (arcR + 27), my + Math.sin(midAng) * (arcR + 27),
+        '(not 109.5°)', 'rgba(251,191,36,.5)', 9.5);
+      ctx.restore();
+    }
+
+    // Summary
+    ctx.save(); ctx.globalAlpha = Math.min(1, (prog - 0.5) * 2);
+    const rx = cx + 170;
+    label(rx, cy - 70, 'sp³ hybridisation', 'rgba(203,213,225,.7)', 13);
+    [
+      ['4 equivalent hybrid orbitals', 'rgba(148,163,184,.5)'],
+      ['3 × N−H bonding pairs (orange)', '#fb923c88'],
+      ['1 × lone pair (violet) — larger', '#a78bfa88'],
+      ['Net charge: 0  (neutral molecule)', 'rgba(148,163,184,.5)'],
+      ['Dipole moment: 1.47 Debye', 'rgba(148,163,184,.5)'],
+    ].forEach(([t2, c], i) => label(rx, cy - 48 + i * 18, t2, c, 11));
+    ctx.restore();
+  }
+}
+
+
+const ELECTRON_INFO = [
+  {col:'#a78bfa',title:'N2 Molecular Orbitals',
+   body:'The sigma* LUMO (dashed red box) sits above all filled MOs. It is empty and high-energy. Iron forces electrons into it, reducing bond order and enabling dissociation at far lower temperature.'},
+  {col:'#60a5fa',title:'Reactant Orbital Inventory',
+   body:'Iron brings partially-filled 3d orbitals. N2 brings a full triple bond with an empty sigma* LUMO. H2 brings a simple sigma bond. Each molecule contributes what the others need.'},
+  {col:'#f59e0b',title:'Fe-N2 Orbital Overlap',
+   body:'N2 approaches Fe end-on. The dz2 orbital overlaps with the N2 sigma* LUMO. Quantum mixing begins, shifting orbital energies. The activation barrier starts to fall.'},
+  {col:'#f87171',title:'Back-Donation in Action',
+   body:'Red particles: Fe 3d electrons flowing into the N2 sigma* orbital. Blue particles: N2 sigma electrons forward-donating to Fe. This synergic push-pull (Blyholder model) drops activation from ~800 to ~155 kJ/mol. Watch the bond-order meter.'},
+  {col:'#fb923c',title:'N-H Bond Formation',
+   body:'N has 5 valence electrons (three unpaired 2p). H* brings one. Three sequential electron pairings complete the nitrogen octet: N* -> NH* -> NH2* -> NH3*. Watch the shell counter reach 8/8.'},
+  {col:'#4ade80',title:'sp3 Hybridisation',
+   body:'N rehybridises to sp3: four tetrahedral orbitals. Three hold N-H bonding pairs (orange). One holds the lone pair (violet, larger, more diffuse). That extra repulsion compresses bond angles from 109.5 to 107 degrees.'},
+];
+
+function AccItem({title, children}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="acc-item">
+      <div className="acc-hdr" onClick={() => setOpen(o => !o)}>
+        <span className="acc-title">{title}</span>
+        <span className={"acc-chev" + (open ? " open" : "")}>&#9660;</span>
+      </div>
+      {open && <div className="acc-body">{children}</div>}
+    </div>
+  );
+}
+
+function NH3Bond() {
+  const ovRef  = useRef(null);
+  const elRef  = useRef(null);
+  const wrapRef = useRef(null);
+  const dimRef  = useRef({scale:1, w:CW, h:CH});
+  const ovRaf  = useRef(null);
+  const elRaf = useRef(null);
+  const stRef = useRef({t:0, last:null, playing:true, speed:1.0, done:false, lastUI:0});
+  const [uiT,     setUiT]    = useState(0);
+  const [playing, setPlaying] = useState(true);
+  const [speed,   setSpeed]   = useState(1.0);
+  const [mode,    setMode]    = useState('overview');
+
+  function initCanvas(canvas) {
+    const {w, h} = dimRef.current;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    canvas.width  = Math.round(w * dpr); canvas.height = Math.round(h * dpr);
+    canvas.style.width  = w + 'px'; canvas.style.height = h + 'px';
+    return canvas.getContext('2d');
+  }
+
+  useEffect(() => {
+    const ov = ovRef.current; if (!ov) return;
+    const ctx = initCanvas(ov);
+    function frame(ts) {
+      const st = stRef.current;
+      if (!st.last) st.last = ts;
+      const dt = Math.min((ts - st.last) / 1000, .05); st.last = ts;
+      if (st.playing && !st.done) {
+        st.t = Math.min(st.t + dt * st.speed, ANIM_SECS);
+        if (st.t >= ANIM_SECS) st.done = true;
+      }
+      const {scale:sc1} = dimRef.current;
+      const dpr1 = Math.min(window.devicePixelRatio||1, 2);
+      ctx.setTransform(dpr1*sc1, 0, 0, dpr1*sc1, 0, 0);
+      drawScene(ctx, getAnimState(st.t), stRef);
+      if (ts - st.lastUI > 120) { st.lastUI = ts; setUiT(st.t); }
+      ovRaf.current = requestAnimationFrame(frame);
+    }
+    ovRaf.current = requestAnimationFrame(frame);
+    return () => { if (ovRaf.current) cancelAnimationFrame(ovRaf.current); stRef.current.last = null; };
+  }, []);
+
+  useEffect(() => {
+    const el = elRef.current; if (!el) return;
+    const ctx = initCanvas(el);
+    function frame() {
+      const {scale:sc2} = dimRef.current;
+      const dpr2 = Math.min(window.devicePixelRatio||1, 2);
+      ctx.setTransform(dpr2*sc2, 0, 0, dpr2*sc2, 0, 0);
+      drawElectronScene(ctx, getAnimState(stRef.current.t), stRef.current.t);
+      elRaf.current = requestAnimationFrame(frame);
+    }
+    elRaf.current = requestAnimationFrame(frame);
+    return () => { if (elRaf.current) cancelAnimationFrame(elRaf.current); };
+  }, []);
+
+  // ResizeObserver — fills available space, maintains 740:390 aspect ratio
+  useEffect(() => {
+    const wrap = wrapRef.current; if (!wrap) return;
+    const obs = new ResizeObserver(entries => {
+      for (const entry of entries) {
+        const pad = 20;
+        const aw = entry.contentRect.width  - pad;
+        const ah = entry.contentRect.height - pad;
+        const scale = Math.min(aw / CW, ah / CH, 2.5);
+        const w = Math.round(CW * scale);
+        const h = Math.round(CH * scale);
+        dimRef.current = {scale, w, h};
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        [ovRef.current, elRef.current].forEach(canvas => {
+          if (!canvas) return;
+          canvas.width  = Math.round(w * dpr);
+          canvas.height = Math.round(h * dpr);
+          canvas.style.width  = w + 'px';
+          canvas.style.height = h + 'px';
+        });
+      }
+    });
+    obs.observe(wrap);
+    return () => obs.disconnect();
+  }, []);
+
+  useEffect(() => { stRef.current.playing = playing; }, [playing]);
+  useEffect(() => { stRef.current.speed   = speed;   }, [speed]);
+
+  const replay = () => {
+    stRef.current.t = 0; stRef.current.done = false; stRef.current.last = null;
+    setUiT(0); setPlaying(true); stRef.current.playing = true;
+  };
+
+  const S    = getAnimState(uiT);
+  const hap  = HAPPENING[S.phase];
+  const ei   = ELECTRON_INFO[S.phase];
+  const prog = S.n * 100;
+  const netE = Math.round(S.energyOut - S.energyIn);
+  const netStr = S.energyOut > 0
+    ? (netE > 0 ? '+' : '') + netE.toLocaleString() + ' kJ/mol'
+    : S.energyIn > 0 ? '+' + Math.round(S.energyIn).toLocaleString() + ' kJ/mol'
+    : '0 kJ/mol';
+  const netCol = S.energyOut > S.energyIn ? '#4ade80' : S.energyIn > 0 ? '#f87171' : 'rgba(203,213,225,.5)';
+  const STEP_COLORS = ['#a78bfa','#60a5fa','#f59e0b','#f87171','#fb923c','#4ade80'];
+
+  return (
+    <div style={{display:'flex',flexDirection:'column',height:'100vh',overflow:'hidden',background:'#080e1a'}}>
+
+      <div className="appbar">
+        <a href="index.html" className="appbar-back">&#8592; Periodic Table</a>
+        <div className="appbar-sep"/>
+        <span className="appbar-label">Bond Formation</span>
+        <div className="appbar-sep"/>
+        <span className="appbar-title">NH&#8323;</span>
+        <span className="appbar-subtitle">Haber-Bosch &middot; N&#8322; + 3H&#8322; &#8594; 2NH&#8323;</span>
+        <span className="appbar-meta">&#916;H = &#8722;93 kJ/mol &middot; 450&#176;C &middot; 200 atm &middot; Fe catalyst</span>
+      </div>
+
+      <div className="steps-bar">
+        {PHASES.map(({step, color}, i) => {
+          const active = i === S.phase, done = i < S.phase;
+          return (
+            <div key={i} className="step-item">
+              <div className="step-pill" style={{
+                borderColor: active||done ? color : 'rgba(148,163,184,.22)',
+                background:  active ? color+'22' : done ? color+'14' : 'transparent',
+                color:       active||done ? color : 'rgba(148,163,184,.3)',
+              }}>{done ? '&#10003;' : i+1}</div>
+              <span className="step-label" style={{color: active?color:done?color+'88':'rgba(148,163,184,.3)', fontWeight:active?600:400}}>
+                {step}{(i===3||i===4) && <span style={{fontSize:9,marginLeft:2,opacity:.65}}>&#128300;</span>}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="main">
+        <div className="canvas-col">
+          <div className="canvas-wrap" ref={wrapRef}>
+            <canvas ref={ovRef} style={{display: mode==='overview' ? 'block' : 'none'}}/>
+            <canvas ref={elRef} style={{display: mode==='electron' ? 'block' : 'none'}}/>
+          </div>
+          <div className="controls">
+            <div className="progress-track"><div className="progress-fill" style={{width:`${prog}%`}}/></div>
+            <div className="mode-toggle">
+              <button className={"mode-btn" + (mode==='overview' ? ' mode-ov' : '')} onClick={()=>setMode('overview')}>&#11041; Overview</button>
+              <button className={"mode-btn" + (mode==='electron' ? ' mode-el' : '')} onClick={()=>setMode('electron')}>&#128300; Electron</button>
+            </div>
+            {(S.phase===3 || S.phase===4) && mode==='overview' && (
+              <div className="phase-hint" onClick={()=>setMode('electron')}>
+                &#128300; {S.phase===3 ? 'See d-orbital back-donation' : 'See N-H formation'}
+              </div>
+            )}
+            <button className="replay-btn" onClick={replay}>&#8634; Replay</button>
+            <button className="ctrl-btn" onClick={()=>setPlaying(p=>!p)}>{playing ? '&#9208;' : '&#9654;'}</button>
+            {[0.5, 1, 2].map(s => (
+              <button key={s} className="speed-btn" onClick={()=>setSpeed(s)} style={{
+                background:  speed===s ? 'rgba(249,115,22,.14)' : 'rgba(255,255,255,.04)',
+                borderColor: speed===s ? 'rgba(249,115,22,.32)' : 'rgba(148,163,184,.12)',
+                color:       speed===s ? '#f97316' : 'rgba(203,213,225,.38)',
+              }}>{s}x</button>
+            ))}
+          </div>
+        </div>
+
+        <div className="right-panel">
+
+          {mode==='electron' && ei && (
+            <div className="panel-section">
+              <div className="section-eyebrow">Electron view &#8212; what to watch</div>
+              <div style={{background:ei.col+'0a',border:`1px solid ${ei.col}28`,borderRadius:7,padding:'10px 12px'}}>
+                <div style={{fontSize:13,fontWeight:600,color:ei.col,marginBottom:5}}>{ei.title}</div>
+                <div style={{fontSize:12,color:'rgba(203,213,225,.62)',lineHeight:1.65}}>{ei.body}</div>
+              </div>
+            </div>
+          )}
+
+          <div className="panel-section">
+            <div className="section-eyebrow">What&#39;s happening now</div>
+            <div className="happening-card" style={{borderColor:hap.color+'30',background:hap.color+'0a'}}>
+              <div className="happening-lead" style={{color:hap.color}}>{hap.headline}</div>
+              <div className="happening-body">{hap.body}</div>
+            </div>
+          </div>
+
+          <div className="panel-section">
+            <div className="section-eyebrow">Energy accounting</div>
+            <div className="energy-tally">
+              <div className="tally-row">
+                <span className="tally-label">Energy invested (bonds broken)</span>
+                <span className="tally-value" style={{color:'#f87171'}}>+{Math.round(S.energyIn).toLocaleString()} kJ/mol</span>
+              </div>
+              <div className="tally-row">
+                <span className="tally-label">Energy released (bonds formed)</span>
+                <span className="tally-value" style={{color:'#4ade80'}}>&#8722;{Math.round(S.energyOut).toLocaleString()} kJ/mol</span>
+              </div>
+              <div className="tally-row">
+                <span className="tally-label" style={{fontWeight:600}}>Net change</span>
+                <span className="tally-value" style={{fontSize:14,color:netCol}}>{netStr}</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="panel-section">
+            <div className="section-eyebrow">The brutal numbers</div>
+            <div className="stats-trio">
+              {[
+                {value:'945',  unit:'kJ/mol', label:'N&#8801;N bond energy', color:'#a78bfa'},
+                {value:'2,253',unit:'kJ/mol', label:'total input',            color:'#f87171'},
+                {value:'&#8722;93',unit:'kJ/mol',label:'net &#916;H (2 NH&#8323;)',color:'#4ade80'},
+              ].map(({value,unit,label,color}) => (
+                <div key={label} className="stat-card">
+                  <div className="stat-value" style={{color,fontSize:value.length>4?14:18}} dangerouslySetInnerHTML={{__html:value}}/>
+                  <div className="stat-unit">{unit}</div>
+                  <div className="stat-label" dangerouslySetInnerHTML={{__html:label}}/>
+                </div>
+              ))}
+            </div>
+            <p style={{fontSize:11.5,lineHeight:1.6,color:'rgba(203,213,225,.4)',marginTop:10}}>
+              You invest <strong style={{color:'rgba(248,113,113,.8)'}}>2,253 kJ/mol</strong> to recover <strong style={{color:'rgba(74,222,128,.8)'}}>2,346 kJ/mol</strong>. Net gain of 93 kJ/mol is only <strong style={{color:'rgba(251,146,60,.8)'}}>4.1%</strong> of input.
+            </p>
+          </div>
+
+          <div className="panel-section">
+            <div className="section-eyebrow">Reaction coordinate (Fe catalyst)</div>
+            <ReactionDiagram progressN={S.n}/>
+            <p style={{fontSize:11.5,color:'rgba(148,163,184,.42)',lineHeight:1.65,marginTop:7}}>
+              <strong style={{color:'rgba(167,139,250,.7)'}}>Purple</strong> = with Fe catalyst.{' '}
+              <strong style={{color:'rgba(248,113,113,.6)'}}>Red dashed</strong> = uncatalysed.
+              TS at <strong style={{color:'rgba(167,139,250,.8)'}}>+155 kJ/mol</strong> is the rate-limiting N&#8801;N step.
+            </p>
+          </div>
+
+          <div className="panel-section">
+            <div className="section-eyebrow">Go deeper</div>
+            <AccItem title="Why is N&#8801;N so impossibly strong?">
+              Nitrogen&#39;s triple bond has <strong>three components</strong>: one sigma bond and two pi bonds. All three share the same 110 pm distance with no lone-pair repulsion between the N atoms. Unlike F&#8322; which is severely weakened by lone-pair clash at close range.
+            </AccItem>
+            <AccItem title="What does iron do at the electron level?">
+              Iron works via the <strong>Blyholder model</strong>: N&#8322; adsorbs end-on to an Fe atom. The Fe dz&#178; orbital overlaps the empty N&#8322; sigma* LUMO. Iron back-donates d-electrons into this antibonding orbital, reducing N&#8211;N bond order. Simultaneously N&#8322; sigma electrons forward-donate to Fe. This synergic push-pull drops activation from ~800 to ~155 kJ/mol.
+            </AccItem>
+            <AccItem title="Why 400&#8211;500&#176;C and 200 atm?">
+              Two competing demands. <strong>Temperature:</strong> the N&#8801;N TS is ~155 kJ/mol even on catalyst. But higher temperature shifts equilibrium back to reactants (Le Chatelier). <strong>Pressure:</strong> 4 gas moles &#8594; 2 moles NH&#8323; so high pressure favours product &#8212; 200 atm raises yield from ~15% to ~50%. 400&#8211;500&#176;C is the engineering compromise.
+            </AccItem>
+            <AccItem title="Why is the bond angle 107&#176; not 109.5&#176;?">
+              N in NH&#8323; has four electron pairs &#8212; three bonding, one lone pair. A lone pair spreads further and repels more strongly. It pushes the three H atoms closer, compressing the ideal tetrahedral 109.5&#176; to 107&#176;.
+            </AccItem>
+            <AccItem title="Why does this process matter so much?">
+              Fritz Haber invented the process in 1909; Carl Bosch industrialised it by 1913. Estimates suggest <strong>50% of the nitrogen in a typical human body</strong> passed through a Haber-Bosch reactor. The process uses roughly <strong>1&#8211;2% of global energy annually</strong>.
+            </AccItem>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(NH3Bond));
+
+</script>
+</body>
+</html>
