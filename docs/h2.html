@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>H₂ — How a Covalent Bond Forms</title>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      height: 100%;
+      background: #080e1a;
+      color: #e2ecff;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      overflow: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+    #root { height: 100vh; display: flex; flex-direction: column; }
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-thumb { background: rgba(148,163,184,.2); border-radius: 3px; }
+    button { cursor: pointer; }
+
+    .appbar {
+      background: #0a1220;
+      border-bottom: 1px solid rgba(148,163,184,.1);
+      height: 52px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 0 18px;
+      flex-shrink: 0;
+    }
+    .appbar-back { color: rgba(148,163,184,.45); font-size: 12px; text-decoration: none; transition: color .15s; }
+    .appbar-back:hover { color: #e2ecff; }
+    .appbar-sep { width: 1px; height: 20px; background: rgba(148,163,184,.12); flex-shrink: 0; }
+    .appbar-label { font-size: 11px; opacity: .28; letter-spacing: .18em; font-family: 'Courier New', monospace; }
+    .appbar-title { font-size: 20px; font-weight: 700; color: #60a5fa; font-family: 'Courier New', monospace; }
+    .appbar-subtitle { font-size: 12px; opacity: .4; }
+    .appbar-meta { margin-left: auto; font-size: 11px; opacity: .22; font-family: 'Courier New', monospace; }
+
+    .steps-bar {
+      display: flex;
+      align-items: center;
+      padding: 10px 18px;
+      background: rgba(255,255,255,.015);
+      border-bottom: 1px solid rgba(148,163,184,.07);
+      flex-shrink: 0;
+      gap: 0;
+    }
+    .step-item { display: flex; align-items: center; gap: 8px; flex: 1; }
+    .step-item:not(:last-child)::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: rgba(148,163,184,.15);
+      margin: 0 6px;
+    }
+    .step-pill {
+      width: 26px; height: 26px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px; font-weight: 700; font-family: 'Courier New', monospace;
+      border: 1.5px solid; flex-shrink: 0; transition: all .25s;
+    }
+    .step-label { font-size: 11px; line-height: 1.3; font-weight: 500; transition: color .25s; white-space: nowrap; }
+
+    .main { flex: 1; display: flex; overflow: hidden; min-height: 0; }
+    .canvas-col { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
+    .canvas-wrap {
+      flex: 1; display: flex; align-items: center; justify-content: center;
+      padding: 12px 16px; background: #080e1a; overflow: hidden;
+    }
+    .canvas-wrap canvas {
+      width: 100%; max-width: 720px; height: auto;
+      border-radius: 12px; border: 1px solid rgba(148,163,184,.07);
+      box-shadow: 0 0 80px rgba(96,165,250,.05), 0 20px 60px rgba(0,0,0,.5);
+    }
+    .controls {
+      flex-shrink: 0; padding: 8px 18px; border-top: 1px solid rgba(148,163,184,.07);
+      display: flex; align-items: center; gap: 10px;
+    }
+    .progress-track { flex: 1; height: 4px; background: rgba(148,163,184,.1); border-radius: 2px; overflow: hidden; }
+    .progress-fill {
+      height: 100%; border-radius: 2px;
+      background: linear-gradient(90deg,#60a5fa 0%,#a78bfa 40%,#fbbf24 80%,#4ade80 100%);
+      transition: width .15s;
+    }
+    .ctrl-btn {
+      background: rgba(255,255,255,.05); border: 1px solid rgba(148,163,184,.14);
+      color: rgba(203,213,225,.6); border-radius: 6px; padding: 4px 12px;
+      font-size: 14px; transition: all .12s;
+    }
+    .ctrl-btn:hover { background: rgba(255,255,255,.1); color: #e2ecff; }
+    .replay-btn {
+      background: rgba(96,165,250,.1); border: 1px solid rgba(96,165,250,.22);
+      color: #60a5fa; border-radius: 6px; padding: 4px 14px;
+      font-size: 11px; font-family: 'Courier New', monospace;
+      letter-spacing: .05em; transition: all .12s;
+    }
+    .replay-btn:hover { background: rgba(96,165,250,.2); }
+    .speed-btn {
+      border: 1px solid rgba(148,163,184,.12); border-radius: 5px;
+      padding: 3px 9px; font-size: 10px; font-family: 'Courier New', monospace; transition: all .12s;
+    }
+
+    .right-panel {
+      width: 328px; flex-shrink: 0;
+      border-left: 1px solid rgba(148,163,184,.1);
+      background: #0d1525; overflow-y: auto;
+      display: flex; flex-direction: column;
+    }
+    .panel-section { padding: 16px 18px; border-bottom: 1px solid rgba(148,163,184,.07); }
+    .section-eyebrow {
+      font-size: 9.5px; font-family: 'Courier New', monospace;
+      letter-spacing: .14em; opacity: .25; text-transform: uppercase; margin-bottom: 10px;
+    }
+
+    .happening-card { border-radius: 8px; padding: 12px 14px; border: 1px solid; }
+    .happening-lead { font-size: 14.5px; font-weight: 600; line-height: 1.4; margin-bottom: 6px; }
+    .happening-body { font-size: 12.5px; color: rgba(203,213,225,.62); line-height: 1.65; }
+    .happening-body strong { color: rgba(226,236,255,.82); font-weight: 600; }
+
+    .stats-trio { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; }
+    .stat-card { background: rgba(255,255,255,.04); border-radius: 7px; padding: 10px 8px; text-align: center; }
+    .stat-value { font-size: 20px; font-weight: 700; font-family: 'Courier New', monospace; line-height: 1.1; margin-bottom: 3px; }
+    .stat-unit  { font-size: 10px; opacity: .42; font-family: 'Courier New', monospace; }
+    .stat-label { font-size: 10px; opacity: .32; margin-top: 2px; }
+
+    .bond-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 5px 12px; border-radius: 20px; border: 1px solid;
+      font-size: 11.5px; font-family: 'Courier New', monospace; font-weight: 700;
+      margin-bottom: 10px;
+    }
+
+    .shell-bar {
+      display: flex; align-items: center; gap: 10px; padding: 10px 12px;
+      border-radius: 8px; border: 1px solid; margin-bottom: 6px; transition: all .4s ease;
+    }
+    .shell-label { font-size: 15px; font-weight: 700; font-family: 'Courier New', monospace; min-width: 28px; }
+    .shell-dots { display: flex; gap: 6px; }
+    .shell-dot { width: 17px; height: 17px; border-radius: 50%; border: 1.5px solid; transition: all .5s ease; flex-shrink: 0; }
+    .shell-info { flex: 1; font-size: 12px; opacity: .4; line-height: 1.3; }
+    .shell-check { font-size: 17px; }
+
+    .satisfied-banner {
+      margin-top: 8px; padding: 10px 12px;
+      background: rgba(74,222,128,.06); border: 1px solid rgba(74,222,128,.2);
+      border-radius: 7px; font-size: 12.5px; color: rgba(74,222,128,.85); line-height: 1.65;
+    }
+    .satisfied-banner strong { color: #4ade80; }
+
+    .morse-note { font-size: 12px; color: rgba(148,163,184,.45); line-height: 1.65; margin-top: 8px; }
+    .morse-note strong { color: rgba(203,213,225,.72); font-weight: 600; }
+
+    .accordion-item { border-bottom: 1px solid rgba(148,163,184,.06); }
+    .accordion-item:last-child { border-bottom: none; }
+    .accordion-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 11px 0; cursor: pointer; user-select: none;
+    }
+    .accordion-title { font-size: 12.5px; font-weight: 600; color: #fbbf24; line-height: 1.3; flex: 1; padding-right: 8px; }
+    .accordion-chevron { font-size: 10px; opacity: .4; transition: transform .2s; flex-shrink: 0; }
+    .accordion-chevron.open { transform: rotate(180deg); opacity: .7; }
+    .accordion-body { font-size: 12.5px; color: rgba(203,213,225,.52); line-height: 1.75; padding-bottom: 12px; }
+    .accordion-body strong { color: rgba(226,236,255,.75); font-weight: 600; }
+    .accordion-body em { color: rgba(203,213,225,.7); font-style: italic; }
+  </style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel" data-presets="react">
+const { useState, useEffect, useRef } = React;
+
+const BW = 200, BH = 120, A0 = 17;
+const INIT_SEP  = 80;
+const EQ_SEP    = Math.round(0.70 * A0);
+const ANIM_SECS = 13;
+const BG        = [8, 14, 26];
+const C_ATM     = [96, 165, 250];
+const C_BND     = [251, 191, 36];
+
+const clamp  = (v,lo,hi) => Math.max(lo, Math.min(hi, v));
+const lerp   = (a,b,t)   => a + (b-a)*t;
+const p01    = (t,t0,t1) => clamp((t-t0)/(t1-t0), 0, 1);
+const ease3  = t => t<0.5 ? 4*t*t*t : 1-Math.pow(-2*t+2,3)/2;
+const easeO2 = t => 1-(1-t)*(1-t);
+const morse  = r => { if(r<=0.02) return 12; const x=1-Math.exp(-1.94*(r-1.0)); return x*x-1; };
+
+const PHASES = [
+  {
+    lead: "Each hydrogen has one electron — but its innermost shell can hold two. Both atoms are chemically incomplete.",
+    detail: "The cloud shown is a probability map: where the electron is most likely to be found at any given instant. Hydrogen's 1s orbital is a perfect sphere. At this distance, the atoms don't yet sense each other.",
+  },
+  {
+    lead: "No push needed. The atoms are naturally drawn together. As the gap closes, the system's total energy falls — nature always moves toward lower energy.",
+    detail: "Watch the orange dot on the Morse curve descend into the energy well. The atoms accelerate toward each other along this gradient. No catalyst, no input required.",
+  },
+  {
+    lead: "Where the two clouds overlap, the electrons start belonging to both atoms at once. The amber glow between the nuclei is real shared electron density building up.",
+    detail: "This is constructive interference. The combined wavefunction (ψ₁ + ψ₂)² produces more electron density between the nuclei than either atom alone — the cross-term 2ψ₁ψ₂ is literally the bond forming.",
+  },
+  {
+    lead: "The two electrons now live in a shared orbital (the σ bond) that wraps around both protons. Each hydrogen atom counts both electrons as its own — that's what a covalent bond is.",
+    detail: "Both electrons occupy the σ orbital with opposite spins ↑↓ — required by the Pauli exclusion principle. The molecule vibrates around its equilibrium length of 74 pm. Breaking this bond requires returning all 436 kJ/mol.",
+  },
+];
+
+const HAPPENING = [
+  { color: '#60a5fa',
+    headline: "Two separate atoms, each seeking a partner",
+    body: <>Each hydrogen has <strong>one electron</strong> in a shell with room for two. Incomplete shells are energetically unfavourable — both atoms are looking to share.</> },
+  { color: '#a78bfa',
+    headline: "Attraction is pulling them together",
+    body: <>Each electron is attracted to <strong>both protons</strong> simultaneously. The system's energy drops as they approach — no catalyst needed.</> },
+  { color: '#fbbf24',
+    headline: "Electrons becoming shared",
+    body: <>The amber region is <strong>shared electron density</strong>. Both electrons now inhabit both atoms at once — quantum superposition made visible in the cloud.</> },
+  { color: '#4ade80',
+    headline: "Covalent bond complete — H₂",
+    body: <>Both 1s shells are <strong>satisfied</strong>. The electrons live in a shared σ orbital. Each H counts both electrons as its own — a complete, stable molecule.</> },
+];
+
+function getAnimState(t) {
+  const n = clamp(t / ANIM_SECS, 0, 1);
+  let sep;
+  if (n < 0.16) {
+    sep = INIT_SEP;
+  } else if (n < 0.66) {
+    sep = lerp(INIT_SEP, EQ_SEP, ease3(p01(n, 0.16, 0.66)));
+  } else {
+    const age = (n - 0.66) * ANIM_SECS;
+    sep = EQ_SEP + 5.5 * Math.exp(-age * 0.6) * Math.sin(age * 2*Math.PI * 2.3);
+  }
+  return {
+    sep, n,
+    phase:     n < 0.16 ? 0 : n < 0.50 ? 1 : n < 0.68 ? 2 : 3,
+    shellFill: lerp(1, 2, easeO2(p01(n, 0.56, 0.72))),
+    satisfied: n >= 0.70,
+    flashA:    Math.max(0, Math.sin(p01(n, 0.66, 0.76) * Math.PI)) * 0.45,
+    rNorm:     (sep * 2) / A0,
+  };
+}
+
+// ── Morse curve ──────────────────────────────────────────────────────
+function MorseCurve({ rNorm }) {
+  const W=200, H=110, px=22, py=14;
+  const rMin=0.38, rMax=4.8, eMin=-1.18, eMax=0.85;
+  const toX = r => px+(r-rMin)/(rMax-rMin)*(W-2*px);
+  const toY = e => py+(1-(e-eMin)/(eMax-eMin))*(H-2*py);
+  const pts = [];
+  for (let i=0;i<=150;i++){const r=rMin+(rMax-rMin)*i/150;const e=morse(r);if(e<1.8)pts.push(`${i===0?'M':'L'}${toX(r).toFixed(1)},${toY(e).toFixed(1)}`);}
+  const rc=clamp(rNorm,rMin,rMax),ec=clamp(morse(rc),eMin,eMax);
+  const dx=toX(rc),dy=toY(ec),zy=toY(0),miny=toY(-1);
+  return (
+    <svg width={W} height={H} style={{display:'block',overflow:'visible'}}>
+      <line x1={px} y1={zy} x2={W-px} y2={zy} stroke="rgba(148,163,184,.16)" strokeWidth="0.7" strokeDasharray="3,2"/>
+      <line x1={toX(1)} y1={miny-2} x2={toX(1)} y2={H-py} stroke="rgba(74,222,128,.18)" strokeWidth="0.7" strokeDasharray="2,2"/>
+      <text x={toX(1)} y={H-py+9} textAnchor="middle" fill="rgba(74,222,128,.45)" fontSize="7" fontFamily="monospace">rₑ = 74 pm</text>
+      <path d={pts.join(' ')} fill="none" stroke="rgba(56,189,248,.65)" strokeWidth="1.8"/>
+      <text x={W/2} y={H+2} textAnchor="middle" fill="rgba(148,163,184,.28)" fontSize="7" fontFamily="'Courier New',monospace">internuclear distance →</text>
+      <text x={8} y={H/2} textAnchor="middle" fill="rgba(148,163,184,.28)" fontSize="7" fontFamily="'Courier New',monospace" transform={`rotate(-90,8,${H/2})`}>potential energy</text>
+      <line x1={toX(1)-11} y1={zy} x2={toX(1)-11} y2={miny} stroke="rgba(249,115,22,.3)" strokeWidth="0.8"/>
+      <text x={toX(1)-17} y={(zy+miny)/2} textAnchor="middle" fill="rgba(249,115,22,.5)" fontSize="6.5" fontFamily="monospace" transform={`rotate(-90,${toX(1)-17},${(zy+miny)/2})`}>436 kJ/mol</text>
+      <circle cx={dx} cy={dy} r="6" fill="#f97316" opacity="0.9"/>
+      <circle cx={dx} cy={dy} r="10" fill="none" stroke="#f97316" strokeWidth="1" opacity="0.3"/>
+    </svg>
+  );
+}
+
+// ── Shell components ─────────────────────────────────────────────────
+function ShellDot({ on, color }) {
+  return <div className="shell-dot" style={{borderColor:color,background:on?color:'transparent',boxShadow:on?`0 0 8px ${color}88`:'none'}}/>;
+}
+function ShellBar({ label, fill, color, satisfied }) {
+  return (
+    <div className="shell-bar" style={{background:satisfied?`${color}0c`:'rgba(255,255,255,.025)',borderColor:satisfied?`${color}30`:'rgba(148,163,184,.1)'}}>
+      <span className="shell-label" style={{color}}>{label}</span>
+      <div className="shell-dots"><ShellDot on={fill>=1} color={color}/><ShellDot on={fill>=1.95} color={color}/></div>
+      <span className="shell-info">1s orbital &nbsp;<span style={{fontFamily:'Courier New',monospace:true}}>{Math.round(fill)}/2 e⁻</span></span>
+      {satisfied&&<span className="shell-check">✓</span>}
+    </div>
+  );
+}
+
+// ── Accordion ────────────────────────────────────────────────────────
+function AccordionItem({ title, children }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="accordion-item">
+      <div className="accordion-header" onClick={()=>setOpen(o=>!o)}>
+        <span className="accordion-title">{title}</span>
+        <span className={`accordion-chevron${open?' open':''}`}>▼</span>
+      </div>
+      {open && <div className="accordion-body">{children}</div>}
+    </div>
+  );
+}
+
+// ── Main ─────────────────────────────────────────────────────────────
+function H2Bond() {
+  const canvasRef = useRef(null);
+  const rafRef    = useRef(null);
+  const stRef     = useRef({
+    t:0, last:null, playing:true, speed:1.0, done:false, lastUI:0,
+    e1: { phase: -Math.PI/2, trail: [] },
+    e2: { phase:  Math.PI/2, trail: [] },
+  });
+  const [uiT,     setUiT]    = useState(0);
+  const [playing, setPlaying] = useState(true);
+  const [speed,   setSpeed]   = useState(1.0);
+
+  useEffect(() => {
+    const canvas = canvasRef.current; if (!canvas) return;
+    const off = document.createElement('canvas'); off.width=BW; off.height=BH;
+    const offCtx = off.getContext('2d');
+    const imgD = offCtx.createImageData(BW,BH); const dat = imgD.data;
+    const [br,bg,bb] = BG;
+
+    function renderFrame(ts) {
+      const st = stRef.current;
+      if (!st.last) st.last = ts;
+      const dt = Math.min((ts-st.last)/1000, 0.05); st.last = ts;
+      if (st.playing && !st.done) { st.t = Math.min(st.t+dt*st.speed, ANIM_SECS); if (st.t>=ANIM_SECS) st.done=true; }
+
+      const S=getAnimState(st.t), cx=BW/2, cy=BH/2, x1=cx-S.sep, x2=cx+S.sep;
+
+      // Wavefunction density
+      for (let py=0;py<BH;py++){for (let px=0;px<BW;px++){
+        const r1=Math.sqrt((px-x1)**2+(py-cy)**2), r2=Math.sqrt((px-x2)**2+(py-cy)**2);
+        const p1=Math.exp(-r1/A0), p2=Math.exp(-r2/A0), pT=p1+p2, dens=pT*pT, cross=2*p1*p2;
+        const i4=(py*BW+px)*4;
+        if(dens<3e-4){dat[i4]=br;dat[i4+1]=bg;dat[i4+2]=bb;dat[i4+3]=255;continue;}
+        const cf=cross/(dens+1e-7), wb=Math.min(1,dens*0.48);
+        let R=lerp(C_ATM[0],C_BND[0],cf),G=lerp(C_ATM[1],C_BND[1],cf),B=lerp(C_ATM[2],C_BND[2],cf);
+        R=lerp(R,255,wb);G=lerp(G,255,wb);B=lerp(B,255,wb);
+        const alpha=Math.min(1,Math.pow(dens,0.50)*3.8);
+        dat[i4]=Math.round(R*alpha+br*(1-alpha));dat[i4+1]=Math.round(G*alpha+bg*(1-alpha));
+        dat[i4+2]=Math.round(B*alpha+bb*(1-alpha));dat[i4+3]=255;
+      }}
+      offCtx.putImageData(imgD,0,0);
+
+      const ctx=canvas.getContext('2d'), CW=canvas.width, CH=canvas.height, SX=CW/BW, SY=CH/BH;
+      ctx.drawImage(off,0,0,CW,CH);
+      if(S.flashA>0.04){ctx.fillStyle=`rgba(74,222,128,${S.flashA*0.28})`;ctx.fillRect(0,0,CW,CH);}
+
+      // Electron particles
+      function ePos(phase, isLeft) {
+        const atomX=isLeft?x1:x2, R=A0*0.78, TILT=0.42;
+        const preX=atomX+R*Math.cos(phase), preY=cy+R*Math.sin(phase)*TILT;
+        const A=EQ_SEP*1.38, B=EQ_SEP*0.76;
+        const postX=cx+A*Math.sin(phase), postY=cy+B*Math.sin(2*phase);
+        const blend=ease3(p01(S.n,0.44,0.70));
+        return{x:lerp(preX,postX,blend),y:lerp(preY,postY,blend)};
+      }
+      const eSpeed=lerp(2.6,3.8,ease3(p01(S.n,0.56,0.72)));
+      st.e1.phase+=eSpeed*dt; st.e2.phase+=eSpeed*dt;
+      const ep1=ePos(st.e1.phase,true), ep2=ePos(st.e2.phase,false);
+      const MXTR=28;
+      st.e1.trail.push({...ep1});if(st.e1.trail.length>MXTR)st.e1.trail.shift();
+      st.e2.trail.push({...ep2});if(st.e2.trail.length>MXTR)st.e2.trail.shift();
+      const EC=['#67e8f9','#c4b5fd'], ESP=['\u2191','\u2193'];
+      [[st.e1.trail,ep1],[st.e2.trail,ep2]].forEach(([trail,cur],ei)=>{
+        const col=EC[ei];
+        trail.forEach((pt,ti)=>{const f=ti/MXTR;ctx.globalAlpha=f*f*0.55;ctx.fillStyle=col;ctx.beginPath();ctx.arc(pt.x*SX,pt.y*SY,lerp(1.2,2.8,f),0,Math.PI*2);ctx.fill();});
+        ctx.globalAlpha=1;
+        const ex=cur.x*SX,ey=cur.y*SY;
+        const glo=ctx.createRadialGradient(ex,ey,0,ex,ey,SX*4.2);
+        glo.addColorStop(0,col);glo.addColorStop(0.4,col+'55');glo.addColorStop(1,'transparent');
+        ctx.globalAlpha=0.78;ctx.fillStyle=glo;ctx.beginPath();ctx.arc(ex,ey,SX*4.2,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
+        ctx.shadowBlur=10;ctx.shadowColor=col;ctx.fillStyle='#ffffff';ctx.beginPath();ctx.arc(ex,ey,SX*0.88,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;
+        const spinA=p01(S.n,0.52,0.70);
+        if(spinA>0.04){ctx.globalAlpha=spinA*0.88;ctx.font=`bold ${Math.round(SX*4)}px monospace`;ctx.fillStyle=col;ctx.textAlign='center';ctx.textBaseline='bottom';ctx.fillText(ESP[ei],ex,ey-SX*1.3);ctx.globalAlpha=1;}
+        const visiting=(ei===0&&cur.x>cx+4)||(ei===1&&cur.x<cx-4);
+        if(visiting&&S.phase>=2){ctx.globalAlpha=0.65;ctx.font=`${Math.round(SX*3)}px monospace`;ctx.fillStyle=col;ctx.textAlign='center';ctx.textBaseline='top';ctx.fillText('visiting',ex,ey+SX*1.6);ctx.globalAlpha=1;}
+      });
+
+      // Bond haze
+      const bondA=ease3(p01(S.n,0.60,0.74))*0.18;
+      if(bondA>0.01){const mid=cx*SX,midy=cy*SY,bw=EQ_SEP*SX*1.6,bh=EQ_SEP*SY*0.72;const bg2=ctx.createRadialGradient(mid,midy,0,mid,midy,bw);bg2.addColorStop(0,`rgba(251,191,36,${bondA})`);bg2.addColorStop(0.6,`rgba(251,191,36,${bondA*0.25})`);bg2.addColorStop(1,'transparent');ctx.fillStyle=bg2;ctx.beginPath();ctx.ellipse(mid,midy,bw,bh,0,0,Math.PI*2);ctx.fill();}
+
+      // Nuclei
+      [x1,x2].forEach(bx=>{
+        const nx=bx*SX,ny=cy*SY,nr=Math.max(5,SX*2.0);
+        const glo=ctx.createRadialGradient(nx,ny,0,nx,ny,nr*5);
+        glo.addColorStop(0,'rgba(255,255,255,0.85)');glo.addColorStop(0.28,'rgba(96,165,250,0.45)');glo.addColorStop(1,'rgba(96,165,250,0)');
+        ctx.fillStyle=glo;ctx.beginPath();ctx.arc(nx,ny,nr*5,0,Math.PI*2);ctx.fill();
+        ctx.fillStyle='#ffffff';ctx.beginPath();ctx.arc(nx,ny,nr*0.95,0,Math.PI*2);ctx.fill();
+      });
+
+      // Atom labels
+      const labelY=(cy-INIT_SEP*0.68)*SY;
+      ctx.font=`bold ${Math.round(SX*7)}px monospace`;ctx.textAlign='center';ctx.textBaseline='bottom';
+      [x1,x2].forEach(bx=>{ctx.fillStyle='#60a5fa';ctx.fillText('H',bx*SX,labelY);});
+
+      // σ bond label
+      const sigmaA=p01(S.n,0.52,0.68);
+      if(sigmaA>0.02){ctx.globalAlpha=sigmaA;ctx.font=`bold ${Math.round(SX*5.5)}px monospace`;ctx.fillStyle='#fbbf24';ctx.textAlign='center';ctx.textBaseline='top';ctx.fillText('\u03c3 bond',CW/2,(cy-INIT_SEP*0.62)*SY);ctx.globalAlpha=1;}
+
+      // Bond length annotation
+      const blA=ease3(p01(S.n,0.68,0.80));
+      if(blA>0.05){
+        const ny=cy*SY,lx1=x1*SX,lx2=x2*SX,tickY=ny+SY*16;
+        ctx.globalAlpha=blA*0.55;ctx.strokeStyle='rgba(148,163,184,.7)';ctx.lineWidth=1;
+        ctx.beginPath();ctx.moveTo(lx1,tickY-5);ctx.lineTo(lx1,tickY+5);ctx.stroke();
+        ctx.beginPath();ctx.moveTo(lx2,tickY-5);ctx.lineTo(lx2,tickY+5);ctx.stroke();
+        ctx.beginPath();ctx.moveTo(lx1,tickY);ctx.lineTo(lx2,tickY);ctx.stroke();
+        ctx.font=`${Math.round(SX*3.5)}px monospace`;ctx.fillStyle='rgba(148,163,184,.8)';ctx.textAlign='center';ctx.textBaseline='top';ctx.fillText('74 pm',(lx1+lx2)/2,tickY+3);
+        ctx.globalAlpha=1;
+      }
+
+      // Approach arrows
+      if(S.phase===1&&S.sep>EQ_SEP+15){
+        const arrowY=cy*SY,innerX1=x1*SX+14,innerX2=x2*SX-14,spread=(S.sep-EQ_SEP)/(INIT_SEP-EQ_SEP);
+        ctx.globalAlpha=spread*0.45;ctx.strokeStyle='rgba(148,163,184,1)';ctx.lineWidth=1.5;
+        [[innerX1,innerX1+22],[innerX2,innerX2-22]].forEach(([from,to])=>{
+          ctx.beginPath();ctx.moveTo(from,arrowY);ctx.lineTo(to,arrowY);ctx.stroke();
+          const dir=to>from?1:-1;ctx.beginPath();ctx.moveTo(to,arrowY);ctx.lineTo(to-dir*7,arrowY-4);ctx.lineTo(to-dir*7,arrowY+4);ctx.closePath();ctx.fillStyle='rgba(148,163,184,1)';ctx.fill();
+        });
+        ctx.globalAlpha=1;
+      }
+
+      if(ts-st.lastUI>120){st.lastUI=ts;setUiT(st.t);}
+      rafRef.current=requestAnimationFrame(renderFrame);
+    }
+    rafRef.current=requestAnimationFrame(renderFrame);
+    return()=>{if(rafRef.current)cancelAnimationFrame(rafRef.current);stRef.current.last=null;};
+  },[]);
+
+  useEffect(()=>{stRef.current.playing=playing;},[playing]);
+  useEffect(()=>{stRef.current.speed=speed;},[speed]);
+
+  const replay=()=>{
+    stRef.current.t=0;stRef.current.done=false;stRef.current.last=null;
+    stRef.current.e1.trail=[];stRef.current.e2.trail=[];
+    setUiT(0);setPlaying(true);stRef.current.playing=true;
+  };
+
+  const S    = getAnimState(uiT);
+  const ph   = PHASES[S.phase];
+  const hap  = HAPPENING[S.phase];
+  const prog = S.n * 100;
+  const STEP_LABELS = ['Separate','Approach','Sharing','Bonded'];
+  const STEP_COLORS = ['#60a5fa','#a78bfa','#fbbf24','#4ade80'];
+
+  return (
+    <div style={{display:'flex',flexDirection:'column',height:'100vh',overflow:'hidden',background:'#080e1a'}}>
+
+      <div className="appbar">
+        <a href="index.html" className="appbar-back">← Periodic Table</a>
+        <div className="appbar-sep"/>
+        <span className="appbar-label">Bond Formation</span>
+        <div className="appbar-sep"/>
+        <span className="appbar-title">H₂</span>
+        <span className="appbar-subtitle">Hydrogen · Nonpolar Covalent · σ bond</span>
+        <span className="appbar-meta">436 kJ/mol · 74 pm · Bond order: 1</span>
+      </div>
+
+      {/* Step indicator */}
+      <div className="steps-bar">
+        {STEP_LABELS.map((label,i)=>{
+          const active=i===S.phase, done=i<S.phase, color=STEP_COLORS[i];
+          return (
+            <div key={i} className="step-item">
+              <div className="step-pill" style={{borderColor:active||done?color:'rgba(148,163,184,.22)',background:active?color+'22':done?color+'14':'transparent',color:active||done?color:'rgba(148,163,184,.3)'}}>
+                {done?'✓':i+1}
+              </div>
+              <span className="step-label" style={{color:active?color:done?color+'88':'rgba(148,163,184,.3)',fontWeight:active?600:400}}>
+                {label}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="main">
+
+        {/* Canvas */}
+        <div className="canvas-col">
+          <div className="canvas-wrap">
+            <canvas ref={canvasRef} width={680} height={360}/>
+          </div>
+          <div className="controls">
+            <div className="progress-track"><div className="progress-fill" style={{width:`${prog}%`}}/></div>
+            <button className="replay-btn" onClick={replay}>↺ Replay</button>
+            <button className="ctrl-btn" onClick={()=>setPlaying(p=>!p)}>{playing?'⏸':'▶'}</button>
+            {[0.5,1,2].map(s=>(
+              <button key={s} className="speed-btn" onClick={()=>setSpeed(s)} style={{
+                background:speed===s?'rgba(249,115,22,.14)':'rgba(255,255,255,.04)',
+                borderColor:speed===s?'rgba(249,115,22,.32)':'rgba(148,163,184,.12)',
+                color:speed===s?'#f97316':'rgba(203,213,225,.38)',
+              }}>{s}×</button>
+            ))}
+          </div>
+        </div>
+
+        {/* Right panel */}
+        <div className="right-panel">
+
+          {/* What's happening */}
+          <div className="panel-section">
+            <div className="section-eyebrow">What's happening now</div>
+            <div className="happening-card" style={{borderColor:hap.color+'30',background:hap.color+'0a'}}>
+              <div className="happening-lead" style={{color:hap.color}}>{hap.headline}</div>
+              <div className="happening-body">{hap.body}</div>
+            </div>
+          </div>
+
+          {/* Phase description */}
+          <div className="panel-section">
+            <div className="section-eyebrow">In more detail</div>
+            <p style={{fontSize:13,lineHeight:1.7,color:'rgba(226,236,255,.7)',marginBottom:8,fontWeight:500}}>
+              {ph.lead}
+            </p>
+            <p style={{fontSize:12,lineHeight:1.7,color:'rgba(203,213,225,.42)'}}>
+              {ph.detail}
+            </p>
+          </div>
+
+          {/* Bond snapshot */}
+          <div className="panel-section">
+            <div className="section-eyebrow">Bond at a glance</div>
+            <div className="bond-badge" style={{borderColor:'#fbbf2440',color:'#fbbf24',background:'#fbbf2410'}}>
+              σ orbital · nonpolar covalent
+            </div>
+            <div className="stats-trio">
+              {[{value:'74',unit:'pm',label:'Bond length',color:'#60a5fa'},{value:'436',unit:'kJ/mol',label:'Bond energy',color:'#4ade80'},{value:'1',unit:'',label:'Bond order',color:'#fbbf24'}].map(({value,unit,label,color})=>(
+                <div key={label} className="stat-card">
+                  <div className="stat-value" style={{color}}>{value}</div>
+                  <div className="stat-unit">{unit}</div>
+                  <div className="stat-label">{label}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Valence shells */}
+          <div className="panel-section">
+            <div className="section-eyebrow">Valence shell status (1s orbital)</div>
+            <ShellBar label="H₁" fill={S.shellFill} color="#60a5fa" satisfied={S.satisfied}/>
+            <ShellBar label="H₂" fill={S.shellFill} color="#60a5fa" satisfied={S.satisfied}/>
+            {S.satisfied ? (
+              <div className="satisfied-banner">
+                <strong>Both shells satisfied.</strong> Each hydrogen atom now counts both electrons as its own. One atom's electrons are no longer just <em>its</em> electrons — they belong to the molecule.
+              </div>
+            ) : (
+              <p style={{fontSize:12,opacity:.32,lineHeight:1.65,marginTop:6}}>
+                The 1s orbital holds a maximum of 2 electrons. Each atom is currently at 1 of 2 — one electron short of stability.
+              </p>
+            )}
+          </div>
+
+          {/* Morse curve */}
+          <div className="panel-section">
+            <div className="section-eyebrow">Potential energy — Morse curve</div>
+            <MorseCurve rNorm={S.rNorm}/>
+            <p className="morse-note">
+              The <strong>orange dot</strong> tracks system energy as atoms approach.
+              At equilibrium (rₑ) the molecule is <strong>436 kJ/mol more stable</strong> than two separate atoms.
+              That energy must be returned to break the bond.
+            </p>
+          </div>
+
+          {/* Deep dive */}
+          <div className="panel-section">
+            <div className="section-eyebrow">Go deeper — tap to expand</div>
+            <AccordionItem title="Why does sharing make both atoms stable?">
+              When an electron is shared between two protons, it lowers its <strong>kinetic energy</strong> by spreading over a larger region (the uncertainty principle — more space means less confined momentum). It also falls under the attraction of <em>both</em> protons, lowering <strong>potential energy</strong>. Both effects make the molecule more stable than the separated atoms.
+            </AccordionItem>
+            <AccordionItem title="What is a σ (sigma) orbital?">
+              The σ orbital is the molecular orbital formed by head-on overlap of two 1s atomic orbitals. It is cylindrically symmetric around the bond axis — looking along the bond end-on, the cloud appears circular. σ bonds are the <strong>strongest single bonds</strong> in chemistry because the overlap is direct and maximum.
+            </AccordionItem>
+            <AccordionItem title="Why can only two electrons share this orbital?">
+              The <strong>Pauli exclusion principle</strong> states that no two electrons can have identical quantum states. The σ orbital accommodates exactly one spin-up (↑) and one spin-down (↓) electron. A third electron would be forced into the σ* antibonding orbital — which would actually push the atoms apart, destabilising the molecule.
+            </AccordionItem>
+            <AccordionItem title="Why is H–H stronger than F–F?">
+              Fluorine is more electronegative, so you might expect F₂ to bond more tightly. But F₂ has a bond energy of only <strong>159 kJ/mol</strong> — barely a third of H₂'s 436 kJ/mol. The reason: each fluorine atom carries three lone pairs of electrons on its outer shell. At the close F–F bond distance, those lone pairs <strong>repel each other</strong>, weakening the bond. Hydrogen has no lone pairs — so H–H achieves a clean, unimpeded head-on overlap.
+            </AccordionItem>
+            <AccordionItem title="What is the Morse potential?">
+              The curve shows V(r) = D<sub>e</sub> · (1 − e<sup>−a(r−rₑ)</sup>)² − D<sub>e</sub>, where D<sub>e</sub> is the dissociation energy and a controls how steeply the curve rises. At large separation the energy approaches zero. As atoms approach, energy drops to a minimum at rₑ = 74 pm. If forced closer still, nuclear repulsion causes energy to rise steeply. The depth of the well — 436 kJ/mol — is the energy required to dissociate the molecule.
+            </AccordionItem>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(H2Bond));
+</script>
+</body>
+</html>

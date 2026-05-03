@@ -8,22 +8,26 @@
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <style>
-    html,body{margin:0;padding:0;background:#080e1a;height:100%;overflow:hidden;}
+    html,body{margin:0;padding:0;background:#080e1a;height:100%;overflow:hidden;
+      font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;}
     #root{height:100vh;}
     #loading{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;
-      justify-content:center;background:#080e1a;color:rgba(56,189,248,.5);
-      font-family:'Courier New',monospace;font-size:12px;letter-spacing:.15em;gap:10px;
+      justify-content:center;background:#080e1a;gap:14px;
       z-index:9999;transition:opacity .4s;}
-    .spin{width:26px;height:26px;border:2px solid rgba(56,189,248,.1);
-      border-top-color:rgba(56,189,248,.6);border-radius:50%;animation:spin .75s linear infinite;}
+    #loading .brand{font-family:'Courier New',monospace;font-size:24px;font-weight:700;
+      color:#60a5fa;letter-spacing:.04em;}
+    #loading .sub{font-family:'Courier New',monospace;font-size:10px;
+      color:rgba(148,163,184,.45);letter-spacing:.18em;text-transform:uppercase;}
+    .spin{width:28px;height:28px;border:2px solid rgba(96,165,250,.1);
+      border-top-color:rgba(96,165,250,.7);border-radius:50%;animation:spin .8s linear infinite;}
     @keyframes spin{to{transform:rotate(360deg);}}
   </style>
 </head>
 <body>
   <div id="loading">
+    <div class="brand">⬡ Periodic Table</div>
     <div class="spin"></div>
-    <span>⬡ PERIODIC TABLE</span>
-    <span style="font-size:8px;opacity:.3;letter-spacing:.1em">LOADING 118 ELEMENTS</span>
+    <div class="sub">Loading 118 elements</div>
   </div>
   <div id="root"></div>
   <script type="text/babel" data-presets="react">
@@ -800,12 +804,19 @@ const EL = [
 const APP_CSS = `
 /* ── Reset & base ───────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-html, body { height: 100%; background: #080e1a; color: #e2ecff; font-family: 'Courier New', Courier, monospace; -webkit-font-smoothing: antialiased; }
+html, body {
+  height: 100%;
+  background: #080e1a;
+  color: #e2ecff;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
 #root { height: 100vh; }
-::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgba(148,163,184,.18); border-radius: 2px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(148,163,184,.32); }
+::-webkit-scrollbar-thumb { background: rgba(148,163,184,.2); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(148,163,184,.36); }
+button { cursor: pointer; }
 
 /* ── MD3 surface tokens ─────────────────────── */
 /* bg=#080e1a  s1=#0d1525  s2=#131f35  s3=#182540 */
@@ -824,30 +835,41 @@ html, body { height: 100%; background: #080e1a; color: #e2ecff; font-family: 'Co
   border-bottom: 1px solid rgba(148,163,184,.1);
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 0 14px;
+  gap: 12px;
+  padding: 0 18px;
   z-index: 100;
   flex-shrink: 0;
   overflow: hidden;
 }
 .appbar-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: #60a5fa;
+  font-family: 'Courier New', monospace;
+  white-space: nowrap;
+  flex-shrink: 0;
+  line-height: 1;
+}
+.appbar-label {
   font-size: 11px;
+  opacity: .32;
   letter-spacing: .18em;
-  opacity: .35;
+  font-family: 'Courier New', monospace;
+  text-transform: uppercase;
   white-space: nowrap;
   flex-shrink: 0;
 }
 .appbar-sep {
   width: 1px;
-  height: 18px;
+  height: 20px;
   background: rgba(148,163,184,.12);
   flex-shrink: 0;
 }
 .appbar-spacer { flex: 1; }
 .btn-group {
   display: flex;
-  border: 1px solid rgba(148,163,184,.14);
-  border-radius: 6px;
+  border: 1px solid rgba(148,163,184,.16);
+  border-radius: 7px;
   overflow: hidden;
   flex-shrink: 0;
 }
@@ -855,39 +877,41 @@ html, body { height: 100%; background: #080e1a; color: #e2ecff; font-family: 'Co
   background: transparent;
   border: none;
   border-right: 1px solid rgba(148,163,184,.14);
-  color: rgba(203,213,225,.42);
-  cursor: pointer;
+  color: rgba(203,213,225,.55);
   font-family: 'Courier New', monospace;
-  font-size: 9.5px;
+  font-size: 11px;
+  font-weight: 500;
   letter-spacing: .04em;
-  padding: 4px 11px;
+  padding: 6px 13px;
   transition: background .12s, color .12s;
   white-space: nowrap;
 }
 .btn-group button:last-child { border-right: none; }
-.btn-group button:hover { background: rgba(255,255,255,.05); color: rgba(203,213,225,.7); }
-.btn-group button.active { background: rgba(56,189,248,.12); color: #e2f0ff; border-color: rgba(56,189,248,.2); }
-.btn-group.orange button.active { background: rgba(249,115,22,.12); color: #fed7aa; border-color: rgba(249,115,22,.2); }
+.btn-group button:hover { background: rgba(255,255,255,.06); color: rgba(226,236,255,.85); }
+.btn-group button.active { background: rgba(56,189,248,.14); color: #e2f0ff; }
+.btn-group.orange button.active { background: rgba(249,115,22,.14); color: #fed7aa; }
 .viewing-chip {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   border: 1px solid;
-  border-radius: 14px;
-  padding: 2px 8px 2px 10px;
-  font-size: 9px;
+  border-radius: 16px;
+  padding: 4px 8px 4px 12px;
+  font-size: 11.5px;
+  font-weight: 600;
   font-family: 'Courier New', monospace;
   flex-shrink: 0;
+  letter-spacing: .02em;
 }
 .viewing-chip button {
   background: none;
   border: none;
   cursor: pointer;
-  font-size: 11px;
+  font-size: 13px;
   line-height: 1;
-  opacity: .55;
+  opacity: .6;
   transition: opacity .1s;
-  padding: 0;
+  padding: 0 2px;
   color: inherit;
 }
 .viewing-chip button:hover { opacity: 1; }
@@ -910,7 +934,7 @@ html, body { height: 100%; background: #080e1a; color: #e2ecff; font-family: 'Co
 
 /* ── Right detail panel ─────────────────────── */
 .detail-panel {
-  width: 360px;
+  width: 380px;
   flex-shrink: 0;
   border-left: 1px solid rgba(148,163,184,.1);
   background: #0d1525;
@@ -928,37 +952,38 @@ html, body { height: 100%; background: #080e1a; color: #e2ecff; font-family: 'Co
 .legend-bar {
   border-top: 1px solid rgba(148,163,184,.08);
   background: #0a1220;
-  padding: 6px 14px;
+  padding: 9px 18px;
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 18px;
   flex-wrap: wrap;
   overflow: hidden;
-  min-height: 36px;
+  min-height: 42px;
 }
 .legend-group {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 9px;
   flex-wrap: wrap;
 }
 .legend-item {
   display: flex;
   align-items: center;
-  gap: 3px;
-  font-size: 7.5px;
-  opacity: .45;
+  gap: 5px;
+  font-size: 10px;
+  opacity: .58;
   white-space: nowrap;
+  letter-spacing: .01em;
 }
 .legend-dot {
-  width: 7px;
-  height: 7px;
+  width: 9px;
+  height: 9px;
   border-radius: 50%;
   flex-shrink: 0;
 }
 .legend-swatch {
-  width: 8px;
-  height: 8px;
+  width: 10px;
+  height: 10px;
   border-radius: 2px;
   flex-shrink: 0;
 }
@@ -982,183 +1007,325 @@ html, body { height: 100%; background: #080e1a; color: #e2ecff; font-family: 'Co
 .ecell.selected {
   z-index: 5;
 }
-.ecell .enum { opacity: .35; line-height: 1; margin-top: 2px; font-family: 'Courier New', monospace; }
-.ecell .esym { font-weight: bold; line-height: 1.05; font-family: 'Courier New', monospace; }
-.ecell .emass { opacity: .28; line-height: 1; margin-bottom: 2px; font-family: 'Courier New', monospace; }
-.ecell .syn-badge { position: absolute; top: 1px; right: 2px; opacity: .45; font-family: 'Courier New', monospace; }
+.ecell .enum { opacity: .48; line-height: 1; margin-top: 2px; font-family: 'Courier New', monospace; font-weight: 500; }
+.ecell .esym { font-weight: 700; line-height: 1.05; font-family: 'Courier New', monospace; letter-spacing: -.01em; }
+.ecell .emass { opacity: .38; line-height: 1; margin-bottom: 2px; font-family: 'Courier New', monospace; }
+.ecell .syn-badge { position: absolute; top: 1px; right: 2px; opacity: .55; font-family: 'Courier New', monospace; }
+.ecell .dd-glyph {
+  position: absolute; top: 1px; left: 2px;
+  opacity: .65; font-family: 'Courier New', monospace;
+  text-shadow: 0 0 5px currentColor; pointer-events: none;
+}
+.ecell:hover .dd-glyph { opacity: 1; }
 
 /* ── f-block labels ─────────────────────────── */
 .fblock-label {
-  font-size: 6.5px;
-  opacity: .16;
-  letter-spacing: .08em;
-  margin-bottom: 3px;
+  font-size: 9px;
+  opacity: .28;
+  letter-spacing: .12em;
+  margin-bottom: 4px;
   font-family: 'Courier New', monospace;
+  text-transform: uppercase;
 }
 
 /* ── View description ───────────────────────── */
 .view-desc {
-  font-size: 8.5px;
-  opacity: .28;
-  margin-bottom: 8px;
-  max-width: 760px;
+  font-size: 11px;
+  opacity: .42;
+  margin-bottom: 10px;
+  max-width: 820px;
   line-height: 1.6;
-  font-family: 'Courier New', monospace;
 }
 
 /* ── Detail panel content ───────────────────── */
 .dp-inner {
-  padding: 16px;
+  padding: 18px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 16px;
   min-width: 328px;
 }
 .dp-identity {
   display: flex;
   align-items: flex-start;
-  gap: 10px;
+  gap: 14px;
 }
-.dp-sym { font-size: 44px; font-weight: bold; line-height: 1; font-family: 'Courier New', monospace; flex-shrink: 0; }
-.dp-name { font-size: 14px; font-weight: bold; color: #e2ecff; font-family: 'Courier New', monospace; }
-.dp-cat  { font-size: 9px; letter-spacing: .04em; margin-top: 1px; }
-.dp-num  { font-size: 9px; opacity: .22; font-family: 'Courier New', monospace; margin-left: auto; flex-shrink: 0; }
-.badge-row { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 5px; }
+.dp-sym {
+  font-size: 56px;
+  font-weight: 700;
+  line-height: .9;
+  font-family: 'Courier New', monospace;
+  flex-shrink: 0;
+  letter-spacing: -.02em;
+}
+.dp-name {
+  font-size: 19px;
+  font-weight: 700;
+  color: #e2ecff;
+  line-height: 1.2;
+  letter-spacing: -.005em;
+}
+.dp-cat  {
+  font-size: 11.5px;
+  font-weight: 500;
+  letter-spacing: .02em;
+  margin-top: 4px;
+  line-height: 1.3;
+}
+.dp-num  {
+  font-size: 11px;
+  opacity: .35;
+  font-family: 'Courier New', monospace;
+  font-weight: 600;
+  margin-left: auto;
+  flex-shrink: 0;
+  letter-spacing: .04em;
+}
+.badge-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
 .badge {
   display: inline-flex;
   align-items: center;
+  gap: 4px;
   border: 1px solid;
-  border-radius: 10px;
-  padding: 2px 7px;
-  font-size: 8.5px;
+  border-radius: 16px;
+  padding: 4px 10px;
+  font-size: 10.5px;
+  font-weight: 600;
   font-family: 'Courier New', monospace;
-  letter-spacing: .04em;
+  letter-spacing: .02em;
   line-height: 1;
 }
 .desc-block {
-  font-size: 10.5px;
-  line-height: 1.65;
-  color: rgba(203,213,225,.6);
-  padding: 9px 11px;
-  background: rgba(255,255,255,.025);
-  border-radius: 6px;
+  font-size: 13px;
+  line-height: 1.7;
+  color: rgba(203,213,225,.72);
+  padding: 12px 14px;
+  background: rgba(255,255,255,.03);
+  border-radius: 8px;
   border-left: 2px solid;
 }
+.desc-block strong { color: rgba(226,236,255,.85); font-weight: 600; }
 .dp-divider { height: 1px; background: rgba(148,163,184,.08); }
 
 /* ── Two-col section ────────────────────────── */
-.two-col { display: flex; gap: 12px; align-items: flex-start; }
-.bohr-col { flex-shrink: 0; display: flex; flex-direction: column; align-items: center; gap: 6px; }
-.shell-badges { display: flex; flex-wrap: wrap; gap: 3px; justify-content: center; }
+.two-col { display: flex; gap: 14px; align-items: flex-start; }
+.bohr-col { flex-shrink: 0; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.shell-badges { display: flex; flex-wrap: wrap; gap: 4px; justify-content: center; }
 .shell-badge {
-  border: 1px solid rgba(148,163,184,.18);
-  border-radius: 4px;
-  padding: 2px 5px;
+  border: 1px solid rgba(148,163,184,.2);
+  border-radius: 6px;
+  padding: 4px 7px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  background: rgba(148,163,184,.04);
-  color: rgba(148,163,184,.42);
+  gap: 1px;
+  background: rgba(148,163,184,.05);
+  color: rgba(148,163,184,.55);
+  transition: all .2s;
 }
-.shell-badge.val { font-weight: bold; }
-.shell-badge .sl { font-size: 6px; opacity: .6; font-family: 'Courier New', monospace; line-height: 1; }
-.shell-badge .sc { font-size: 10px; font-weight: bold; font-family: 'Courier New', monospace; line-height: 1; }
-.pne-label { font-size: 8px; color: rgba(148,163,184,.35); text-align: center; line-height: 1.5; }
+.shell-badge.val { font-weight: 700; }
+.shell-badge .sl { font-size: 9px; opacity: .7; font-family: 'Courier New', monospace; line-height: 1; letter-spacing: .04em; }
+.shell-badge .sc { font-size: 13px; font-weight: 700; font-family: 'Courier New', monospace; line-height: 1; }
+.pne-label {
+  font-size: 11px;
+  color: rgba(148,163,184,.55);
+  text-align: center;
+  line-height: 1.5;
+  font-family: 'Courier New', monospace;
+  letter-spacing: .02em;
+}
 
 /* ── Stats column ───────────────────────────── */
-.stats-col { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 7px; }
-.stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
-.stat-box { background: rgba(255,255,255,.035); border-radius: 5px; padding: 6px 7px; }
-.stat-k { font-size: 7px; opacity: .26; letter-spacing: .05em; line-height: 1; font-family: 'Courier New', monospace; }
-.stat-v { font-weight: bold; font-family: 'Courier New', monospace; line-height: 1.3; margin-top: 2px; }
-.en-bar { position: relative; height: 6px; background: rgba(255,255,255,.06); border-radius: 3px; overflow: visible; }
-.en-fill { height: 100%; border-radius: 3px; }
-.en-label { position: absolute; top: -10px; font-size: 8px; font-family: 'Courier New', monospace; transform: translateX(-50%); }
-.en-ends { display: flex; justify-content: space-between; margin-top: 3px; font-size: 7px; opacity: .22; font-family: 'Courier New', monospace; }
+.stats-col { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 10px; }
+.stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.stat-box {
+  background: rgba(255,255,255,.04);
+  border-radius: 7px;
+  padding: 9px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.stat-k {
+  font-size: 9.5px;
+  opacity: .42;
+  letter-spacing: .08em;
+  line-height: 1;
+  font-family: 'Courier New', monospace;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+.stat-v {
+  font-weight: 700;
+  font-family: 'Courier New', monospace;
+  line-height: 1.2;
+  letter-spacing: -.01em;
+}
+.en-bar { position: relative; height: 8px; background: rgba(255,255,255,.06); border-radius: 4px; overflow: visible; }
+.en-fill { height: 100%; border-radius: 4px; }
+.en-label {
+  position: absolute; top: -14px;
+  font-size: 10.5px;
+  font-weight: 700;
+  font-family: 'Courier New', monospace;
+  transform: translateX(-50%);
+  letter-spacing: -.01em;
+}
+.en-ends {
+  display: flex; justify-content: space-between;
+  margin-top: 6px;
+  font-size: 9.5px;
+  opacity: .38;
+  font-family: 'Courier New', monospace;
+  letter-spacing: .02em;
+}
 .origin-box {
-  padding: 7px 9px;
-  background: rgba(255,255,255,.025);
-  border-radius: 5px;
+  padding: 10px 12px;
+  background: rgba(255,255,255,.03);
+  border-radius: 7px;
   border-left: 3px solid;
   line-height: 1.5;
-  font-size: 9px;
+  font-size: 11.5px;
 }
 .bohr-explainer {
-  background: rgba(255,255,255,.02);
-  border-radius: 5px;
-  padding: 8px 9px;
-  border: 1px solid rgba(148,163,184,.08);
+  background: rgba(255,255,255,.025);
+  border-radius: 7px;
+  padding: 11px 12px;
+  border: 1px solid rgba(148,163,184,.1);
 }
-.be-title { font-size: 7.5px; letter-spacing: .1em; margin-bottom: 6px; font-family: 'Courier New', monospace; }
-.be-line { font-size: 9px; color: rgba(203,213,225,.5); line-height: 1.55; margin-bottom: 3px; }
-.be-note { font-size: 8px; color: rgba(203,213,225,.28); line-height: 1.5; }
+.be-title {
+  font-size: 10px;
+  letter-spacing: .14em;
+  margin-bottom: 8px;
+  font-family: 'Courier New', monospace;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+.be-line { font-size: 11.5px; color: rgba(203,213,225,.62); line-height: 1.6; margin-bottom: 5px; }
+.be-line:last-of-type { margin-bottom: 6px; }
+.be-note { font-size: 10px; color: rgba(203,213,225,.4); line-height: 1.55; font-style: italic; }
 
 /* ── Nav compass ────────────────────────────── */
 .nav-compass {
   display: grid;
   grid-template-columns: 1fr auto 1fr;
   grid-template-rows: auto auto auto;
-  gap: 3px;
+  gap: 5px;
 }
 .nav-btn {
   border: 1px solid;
-  border-radius: 5px;
+  border-radius: 7px;
   background: transparent;
   cursor: pointer;
   font-family: 'Courier New', monospace;
-  padding: 3px 6px;
+  padding: 6px 8px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 1px;
-  transition: all .1s;
+  gap: 2px;
+  transition: transform .12s, background .12s, opacity .12s;
 }
-.nav-btn:hover { opacity: .75; }
-.nav-btn .na { font-size: 10px; font-weight: bold; line-height: 1.2; }
-.nav-btn .nl { font-size: 6.5px; opacity: .38; line-height: 1; }
+.nav-btn:hover { transform: translateY(-1px); opacity: .9; }
+.nav-btn .na { font-size: 12.5px; font-weight: 700; line-height: 1.2; letter-spacing: -.01em; }
+.nav-btn .nl { font-size: 9px; opacity: .5; line-height: 1; letter-spacing: .02em; }
 .nav-center {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 3px 10px;
+  padding: 6px 14px;
   border: 1px solid;
-  border-radius: 5px;
-  font-size: 13px;
-  font-weight: bold;
+  border-radius: 7px;
+  font-size: 17px;
+  font-weight: 700;
   font-family: 'Courier New', monospace;
+  letter-spacing: -.01em;
 }
 
 /* ── Facts ──────────────────────────────────── */
-.facts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 10px; }
-.fact-item { display: flex; gap: 5px; align-items: flex-start; }
-.fact-bullet { font-size: 9px; flex-shrink: 0; margin-top: 2px; }
-.fact-text { font-size: 9.5px; line-height: 1.55; color: rgba(203,213,225,.57); }
+.facts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 14px; }
+.fact-item { display: flex; gap: 7px; align-items: flex-start; }
+.fact-bullet { font-size: 12px; flex-shrink: 0; line-height: 1.5; font-weight: 700; }
+.fact-text { font-size: 12px; line-height: 1.6; color: rgba(203,213,225,.68); }
+.fact-text strong { color: rgba(226,236,255,.85); font-weight: 600; }
 
 /* ── Location ───────────────────────────────── */
 .loc-box {
   display: flex;
-  gap: 7px;
-  padding: 8px 11px;
-  background: rgba(255,255,255,.02);
-  border-radius: 5px;
+  gap: 9px;
+  padding: 11px 13px;
+  background: rgba(255,255,255,.025);
+  border-radius: 7px;
   border-left: 3px solid;
-  font-size: 9.5px;
+  font-size: 12px;
   line-height: 1.6;
-  color: rgba(203,213,225,.52);
+  color: rgba(203,213,225,.62);
 }
-.loc-icon { opacity: .32; flex-shrink: 0; }
+.loc-icon { opacity: .42; flex-shrink: 0; font-size: 14px; line-height: 1.4; }
 
 /* ── Section headers ────────────────────────── */
-.sec-hdr { font-size: 7px; opacity: .22; letter-spacing: .14em; margin-bottom: 6px; font-family: 'Courier New', monospace; }
+.sec-hdr {
+  font-size: 9.5px;
+  opacity: .35;
+  letter-spacing: .14em;
+  margin-bottom: 9px;
+  font-family: 'Courier New', monospace;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+/* ── Deep Dive CTA ──────────────────────────── */
+.deepdive-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid;
+  border-radius: 8px;
+  text-decoration: none;
+  transition: transform .12s, box-shadow .12s, background .12s;
+}
+.deepdive-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(0,0,0,.35);
+}
+.deepdive-card + .deepdive-card { margin-top: 8px; }
+.deepdive-card .dd-icon {
+  width: 28px; height: 28px;
+  display: flex; align-items: center; justify-content: center;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  font-size: 11px;
+  flex-shrink: 0;
+}
+.deepdive-card .dd-content { flex: 1; min-width: 0; }
+.deepdive-card .dd-title {
+  font-size: 12.5px;
+  font-weight: 700;
+  font-family: 'Courier New', monospace;
+  letter-spacing: .02em;
+  line-height: 1.2;
+  margin-bottom: 3px;
+}
+.deepdive-card .dd-blurb {
+  font-size: 11.5px;
+  color: rgba(203,213,225,.62);
+  line-height: 1.55;
+}
+.deepdive-card .dd-arrow {
+  font-size: 14px;
+  opacity: .55;
+  flex-shrink: 0;
+  font-family: 'Courier New', monospace;
+}
 
 /* ── Bottom sheet (mobile) ──────────────────── */
 .sheet-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(8,14,26,.82);
-  backdrop-filter: blur(6px);
+  background: rgba(8,14,26,.84);
+  backdrop-filter: blur(8px);
   z-index: 200;
-  animation: bsIn .15s ease;
+  animation: bsIn .18s ease;
 }
 @keyframes bsIn { from { opacity: 0; } to { opacity: 1; } }
 .bottom-sheet {
@@ -1167,37 +1334,42 @@ html, body { height: 100%; background: #080e1a; color: #e2ecff; font-family: 'Co
   left: 0;
   right: 0;
   background: #0d1525;
-  border-top: 1px solid rgba(148,163,184,.12);
-  border-radius: 16px 16px 0 0;
-  max-height: 88vh;
+  border-top: 1px solid rgba(148,163,184,.14);
+  border-radius: 18px 18px 0 0;
+  max-height: 90vh;
   overflow-y: auto;
   z-index: 201;
-  animation: bsUp .2s cubic-bezier(.32,1,.64,1);
+  animation: bsUp .24s cubic-bezier(.32,1,.64,1);
+  box-shadow: 0 -20px 60px rgba(0,0,0,.55);
 }
 @keyframes bsUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
 .sheet-handle {
   display: flex;
   justify-content: center;
-  padding: 8px 0 4px;
+  padding: 10px 0 4px;
   flex-shrink: 0;
 }
-.sheet-handle-bar { width: 36px; height: 3px; background: rgba(148,163,184,.2); border-radius: 2px; }
+.sheet-handle-bar { width: 40px; height: 4px; background: rgba(148,163,184,.24); border-radius: 2px; }
 .sheet-close {
   position: absolute;
-  top: 10px;
+  top: 12px;
   right: 14px;
-  background: none;
-  border: none;
-  color: rgba(148,163,184,.5);
-  font-size: 16px;
+  background: rgba(255,255,255,.04);
+  border: 1px solid rgba(148,163,184,.14);
+  color: rgba(203,213,225,.7);
+  font-size: 14px;
   cursor: pointer;
   font-family: 'Courier New', monospace;
-  padding: 2px 6px;
-  border-radius: 4px;
-  transition: .1s;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all .12s;
   z-index: 10;
 }
-.sheet-close:hover { color: #e2ecff; background: rgba(255,255,255,.06); }
+.sheet-close:hover { color: #e2ecff; background: rgba(255,255,255,.1); border-color: rgba(148,163,184,.3); }
 
 /* ── Dufour node ────────────────────────────── */
 .dnode {
@@ -1264,72 +1436,303 @@ function getOxStates(n){
 }
 
 // ─────────────────────────────────────────────────
-// BohrCanvas
+// BohrCanvas — 3-D electron cloud visualization
+//
+// Physics notes:
+//  • Outer/valence shells = higher energy state → rendered FASTER
+//  • Inner shells = lower energy, more tightly bound → rendered SLOWER
+//  • Orbits are tilted 3-D ellipses (each shell has a unique inclination
+//    and longitude) so the viewer sees genuine depth
+//  • Electrons spawn a persistent Gaussian cloud of semi-transparent
+//    particles each frame — accumulated alpha = probability density cloud
+//  • Depth-cueing: particles behind the nucleus are dimmed; those in
+//    front are bright.  Electrons are sorted back-to-front before draw.
 // ─────────────────────────────────────────────────
-function BohrCanvas({ el, sz=220 }) {
+function BohrCanvas({ el, sz = 220 }) {
   const ref = useRef(null);
   const rafRef = useRef(null);
   const stRef = useRef(null);
-  const [num,sym,,cat,shells] = el;
+  const [num, sym,, cat, shells] = el;
   const color = CATS[cat].c;
 
-  useEffect(()=>{
-    const canvas=ref.current; if(!canvas)return;
-    const dpr=window.devicePixelRatio||1;
-    canvas.width=sz*dpr; canvas.height=sz*dpr;
-    canvas.style.width=sz+'px'; canvas.style.height=sz+'px';
-    const ctx=canvas.getContext('2d'); ctx.scale(dpr,dpr);
-    const cx=sz/2,cy=sz/2;
-    const act=shells.filter(c=>c>0);
-    const nS=act.length,vi=nS-1;
-    const nucR=Math.max(10,sz*.056);
-    const minR=nucR+sz*.072,maxR=cx-sz*.058;
-    const radii=act.map((_,i)=>nS===1?(minR+maxR)/2:minR+(maxR-minR)*i/(nS-1));
-    if(!stRef.current||stRef.current.num!==num){
-      stRef.current={num,t:0,
-        stars:Array.from({length:36},()=>({x:Math.random()*sz,y:Math.random()*sz,r:Math.random()*.7+.18,a:Math.random()*.4+.12,tw:Math.random()*Math.PI*2})),
-        angles:act.map((cnt,si)=>{const dc=si===vi?Math.min(cnt,12):Math.min(cnt,8);return Array.from({length:dc},(_,ei)=>2*Math.PI*ei/dc+si*.42);}),
+  useEffect(() => {
+    const canvas = ref.current; if (!canvas) return;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    canvas.width  = sz * dpr; canvas.height = sz * dpr;
+    canvas.style.width = sz + 'px'; canvas.style.height = sz + 'px';
+    const ctx = canvas.getContext('2d');
+    ctx.scale(dpr, dpr);
+
+    const cx = sz / 2, cy = sz / 2;
+    const act = shells.filter(c => c > 0);
+    const nS = act.length, vi = nS - 1;
+
+    const nucR  = Math.max(10, sz * 0.055);
+    const minR  = nucR + sz * 0.075;
+    const maxR  = cx   - sz * 0.055;
+    const radii = act.map((_, i) =>
+      nS === 1 ? (minR + maxR) / 2 : minR + (maxR - minR) * i / (nS - 1)
+    );
+
+    // ── 3-D orientation per shell ─────────────────
+    // Each shell has its own inclination (tilt from the horizontal plane)
+    // and longitude (rotation of the tilt axis).  The golden-ratio spread
+    // of longitudes prevents shells from overlapping edge-on.
+    const PHI = 2.399963; // 2π / φ — golden angle in radians
+    const tilts = act.map((_, i) => ({
+      inc: Math.PI * 0.18 + i * (Math.PI * 0.13),   // 18°…deep tilt per shell
+      lon: (i * PHI) % (Math.PI * 2),                // golden-angle spread
+    }));
+
+    // ── Speeds: outer shells FASTER (higher energy state) ────────────
+    // Index 0 = innermost (K shell) — slowest
+    // Index 6 = outermost (Q shell) — fastest
+    const SPEEDS = [0.30, 0.48, 0.72, 1.05, 1.50, 2.10, 2.85];
+
+    if (!stRef.current || stRef.current.num !== num) {
+      stRef.current = {
+        num, t: 0,
+        stars: Array.from({ length: 38 }, () => ({
+          x: Math.random() * sz, y: Math.random() * sz,
+          r: Math.random() * 0.65 + 0.18,
+          a: Math.random() * 0.38 + 0.12,
+          tw: Math.random() * Math.PI * 2,
+        })),
+        // Electron phase angles per shell
+        angles: act.map((cnt, si) => {
+          const dc = Math.min(cnt, si === vi ? 12 : 8);
+          return Array.from({ length: dc }, (_, ei) => 2 * Math.PI * ei / dc);
+        }),
+        // Persistent cloud particle pool
+        cloud: [],
       };
     }
-    const SPEEDS=[3.2,1.6,.85,.48,.28,.16,.10]; let last=null;
-    function frame(ts){
-      if(!last)last=ts; const dt=Math.min((ts-last)/1000,.05); last=ts;
-      stRef.current.t+=dt; const t=stRef.current.t;
-      stRef.current.angles=stRef.current.angles.map((arr,si)=>arr.map(a=>a+SPEEDS[Math.min(si,6)]*dt));
-      ctx.fillStyle='#080e1a'; ctx.fillRect(0,0,sz,sz);
-      stRef.current.stars.forEach(s=>{const tw=.4+.6*Math.sin(t*1.5+s.tw);ctx.fillStyle=`rgba(255,255,255,${s.a*tw})`;ctx.beginPath();ctx.arc(s.x,s.y,s.r,0,Math.PI*2);ctx.fill();});
-      for(let si=nS-1;si>=0;si--){
-        const cnt=act[si],r=radii[si],isV=si===vi;
-        ctx.save();if(isV){ctx.shadowBlur=12;ctx.shadowColor=color;}
-        ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);
-        ctx.strokeStyle=isV?color+'bb':'rgba(148,163,184,.12)';ctx.lineWidth=isV?1.5:.6;ctx.stroke();ctx.restore();
-        const lfs=Math.max(6,sz*.026);
-        ctx.font=`${isV?'bold ':''}${lfs}px monospace`;ctx.fillStyle=isV?color:'rgba(148,163,184,.3)';ctx.textAlign='center';ctx.textBaseline='bottom';
-        ctx.fillText(`${SHL[si]}:${cnt}`,cx,cy-r-2);
-        const dc=isV?Math.min(cnt,12):Math.min(cnt,8);
-        stRef.current.angles[si].slice(0,dc).forEach(angle=>{
-          const ex=cx+r*Math.cos(angle),ey=cy+r*Math.sin(angle),er=sz*.027;
-          if(isV){const g=ctx.createRadialGradient(ex,ey,0,ex,ey,er*2.8);g.addColorStop(0,'#fff');g.addColorStop(.3,color);g.addColorStop(1,'transparent');ctx.fillStyle=g;ctx.beginPath();ctx.arc(ex,ey,er*2.8,0,Math.PI*2);ctx.fill();ctx.fillStyle='white';ctx.beginPath();ctx.arc(ex,ey,er*.65,0,Math.PI*2);ctx.fill();}
-          else{ctx.fillStyle=si===0?'rgba(210,230,255,.82)':'rgba(160,190,240,.48)';ctx.beginPath();ctx.arc(ex,ey,si===0?er*.78:er*.58,0,Math.PI*2);ctx.fill();}
-        });
-        if(!isV&&cnt>dc){ctx.fillStyle='rgba(148,163,184,.3)';ctx.font=`${Math.max(6,sz*.022)}px monospace`;ctx.textAlign='left';ctx.textBaseline='middle';ctx.fillText(`x${cnt}`,cx+r+3,cy);}
-      }
-      const pulse=1+.1*Math.sin(t*2.8);
-      const ng=ctx.createRadialGradient(cx,cy,0,cx,cy,nucR*2.1*pulse);
-      ng.addColorStop(0,'rgba(255,255,255,.92)');ng.addColorStop(.18,color+'ee');ng.addColorStop(.5,color+'33');ng.addColorStop(1,'transparent');
-      ctx.fillStyle=ng;ctx.beginPath();ctx.arc(cx,cy,nucR*2.1*pulse,0,Math.PI*2);ctx.fill();
-      ctx.beginPath();ctx.arc(cx,cy,nucR,0,Math.PI*2);ctx.fillStyle='#080e1a';ctx.fill();ctx.strokeStyle=color;ctx.lineWidth=1.5;ctx.stroke();
-      const dots=Math.min(num,7);
-      for(let i=0;i<dots;i++){const a=(2*Math.PI*i/dots)+t*.5;ctx.fillStyle=i%2===0?'#f87171':'#60a5fa';ctx.beginPath();ctx.arc(cx+nucR*.52*Math.cos(a),cy+nucR*.52*Math.sin(a),Math.max(1.3,nucR*.13),0,Math.PI*2);ctx.fill();}
-      const fs=sym.length>2?Math.max(7,nucR*.5):sym.length===2?Math.max(8,nucR*.66):Math.max(10,nucR*.82);
-      ctx.font=`bold ${fs}px monospace`;ctx.fillStyle='white';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(sym,cx,cy);
-      rafRef.current=requestAnimationFrame(frame);
+
+    // ── 3-D → 2-D projection ─────────────────────
+    // Orbit is in the XY plane; tilt.inc rotates it around X; tilt.lon
+    // then rotates the whole thing around Z.  We add a fixed viewer
+    // elevation so the top face is always visible.
+    const VIEW_ELEV = Math.PI / 7; // ~26° above equator
+
+    function project(r, angle, tilt) {
+      // Position on un-tilted circular orbit
+      const x0 = r * Math.cos(angle);
+      const y0 = r * Math.sin(angle);
+      // Tilt around X axis by inc
+      const y1 =  y0 * Math.cos(tilt.inc);
+      const z1 =  y0 * Math.sin(tilt.inc);
+      // Rotate around Z axis by lon
+      const x2 =  x0 * Math.cos(tilt.lon) - y1 * Math.sin(tilt.lon);
+      const y2 =  x0 * Math.sin(tilt.lon) + y1 * Math.cos(tilt.lon);
+      const z2 =  z1;
+      // Apply viewer elevation (rotate around X)
+      const yv =  y2 * Math.cos(VIEW_ELEV) - z2 * Math.sin(VIEW_ELEV);
+      const zv =  y2 * Math.sin(VIEW_ELEV) + z2 * Math.cos(VIEW_ELEV);
+      return {
+        x: cx + x2,
+        y: cy - yv,
+        depth: zv,           // positive = towards viewer
+      };
     }
-    rafRef.current=requestAnimationFrame(frame);
-    return()=>{if(rafRef.current)cancelAnimationFrame(rafRef.current);last=null;};
-  },[num,sz]);
-  return <canvas ref={ref} style={{display:'block',borderRadius:8}} />;
+
+    // ── Draw tilted orbit ring ────────────────────
+    function drawRing(r, tilt, isV) {
+      ctx.save();
+      ctx.beginPath();
+      const steps = 72;
+      for (let k = 0; k <= steps; k++) {
+        const p = project(r, (k / steps) * Math.PI * 2, tilt);
+        k === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y);
+      }
+      ctx.closePath();
+      ctx.strokeStyle = isV ? color + 'aa' : 'rgba(148,163,184,0.15)';
+      ctx.lineWidth   = isV ? 0.9 : 0.45;
+      if (isV) { ctx.shadowBlur = 4; ctx.shadowColor = color; }
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    let last = null;
+
+    function frame(ts) {
+      if (!last) last = ts;
+      const dt = Math.min((ts - last) / 1000, 0.05);
+      last = ts;
+      stRef.current.t += dt;
+      const t = stRef.current.t;
+
+      // Advance electron angles — outer shells faster
+      stRef.current.angles = stRef.current.angles.map((arr, si) =>
+        arr.map(a => a + SPEEDS[Math.min(si, 6)] * dt)
+      );
+
+      // ── Background: semi-transparent wipe creates cloud trails ───
+      // alpha < 1 → previous frame lingers → natural persistence glow
+      ctx.fillStyle = 'rgba(8,14,26,0.62)';
+      ctx.fillRect(0, 0, sz, sz);
+
+      // ── Stars ────────────────────────────────────
+      stRef.current.stars.forEach(s => {
+        const tw = 0.4 + 0.6 * Math.sin(t * 1.4 + s.tw);
+        ctx.fillStyle = `rgba(255,255,255,${s.a * tw})`;
+        ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2); ctx.fill();
+      });
+
+      // ── Collect electron world-positions ─────────
+      const ePts = [];
+      for (let si = 0; si < nS; si++) {
+        const cnt = act[si], r = radii[si], isV = si === vi;
+        const tilt = tilts[si];
+        const dc = Math.min(cnt, isV ? 12 : 8);
+
+        // Draw orbital ring (behind electrons)
+        drawRing(r, tilt, isV);
+
+        // Shell label at top of ring
+        const lp = project(r, -Math.PI / 2, tilt);
+        ctx.font = `${isV ? 'bold ' : ''}${Math.max(6, sz * 0.025)}px monospace`;
+        ctx.fillStyle   = isV ? color : 'rgba(148,163,184,0.28)';
+        ctx.textAlign   = 'center';
+        ctx.textBaseline = 'bottom';
+        ctx.fillText(`${SHL[si]}:${cnt}`, lp.x, lp.y - 3);
+
+        stRef.current.angles[si].slice(0, dc).forEach(angle => {
+          const pt = project(r, angle, tilt);
+          ePts.push({ ...pt, si, isV, eColor: isV ? color : '#90b4e8' });
+
+          // ── Spawn cloud particles around each electron ───────────
+          // More/larger for valence (high-energy); fewer/smaller for core
+          const cloudR  = isV ? sz * 0.065 : sz * 0.042;
+          const nCloud  = isV ? 16 : 9;
+          for (let p = 0; p < nCloud; p++) {
+            // Gaussian spread via Box-Muller transform
+            const u = Math.random(), v = Math.random();
+            const gauss = Math.sqrt(-2 * Math.log(u + 1e-9)) * Math.cos(2 * Math.PI * v);
+            const dist  = Math.abs(gauss) * cloudR * 0.45;
+            const cAng  = Math.random() * Math.PI * 2;
+            stRef.current.cloud.push({
+              x:     pt.x + Math.cos(cAng) * dist,
+              y:     pt.y + Math.sin(cAng) * dist,
+              depth: pt.depth,
+              size:  isV ? sz * 0.022 : sz * 0.014,
+              alpha: isV ? 0.13 : 0.07,
+              color: isV ? color : '#90b4e8',
+              life:  1.0,
+            });
+          }
+        });
+      }
+
+      // ── Age & cull cloud particles ────────────────
+      const DECAY = 0.80;
+      stRef.current.cloud = stRef.current.cloud
+        .map(p => ({ ...p, life: p.life * DECAY }))
+        .filter(p => p.life > 0.04);
+      if (stRef.current.cloud.length > 1800)
+        stRef.current.cloud = stRef.current.cloud.slice(-1800);
+
+      // ── Sort all cloud particles back→front ──────
+      const sorted = stRef.current.cloud.slice().sort((a, b) => a.depth - b.depth);
+
+      // ── Draw cloud particles ─────────────────────
+      // Depth factor: particles behind nucleus are dim; in front are bright
+      sorted.forEach(p => {
+        const df = 0.35 + 0.65 * Math.max(0, Math.min(1, (p.depth + maxR) / (2 * maxR)));
+        ctx.save();
+        ctx.globalAlpha = p.alpha * p.life * df;
+        const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.size);
+        g.addColorStop(0, p.color);
+        g.addColorStop(1, 'transparent');
+        ctx.fillStyle = g;
+        ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2); ctx.fill();
+        ctx.restore();
+      });
+
+      // ── Draw electron cores back→front ───────────
+      ePts.sort((a, b) => a.depth - b.depth).forEach(ep => {
+        const df   = 0.28 + 0.72 * Math.max(0, Math.min(1, (ep.depth + maxR) / (2 * maxR)));
+        const core = ep.isV ? sz * 0.024 : sz * 0.014;
+        ctx.save();
+        ctx.globalAlpha = df;
+        if (ep.isV) {
+          // Valence: glowing bright core
+          ctx.shadowBlur  = 10; ctx.shadowColor = ep.eColor;
+          const g = ctx.createRadialGradient(ep.x, ep.y, 0, ep.x, ep.y, core * 2.8);
+          g.addColorStop(0, '#ffffff');
+          g.addColorStop(0.25, ep.eColor);
+          g.addColorStop(1, 'transparent');
+          ctx.fillStyle = g;
+          ctx.beginPath(); ctx.arc(ep.x, ep.y, core * 2.8, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = '#ffffff';
+          ctx.beginPath(); ctx.arc(ep.x, ep.y, core * 0.45, 0, Math.PI * 2); ctx.fill();
+        } else {
+          // Core shells: softer dot
+          const g = ctx.createRadialGradient(ep.x, ep.y, 0, ep.x, ep.y, core * 2);
+          g.addColorStop(0, ep.eColor);
+          g.addColorStop(1, 'transparent');
+          ctx.fillStyle = g;
+          ctx.beginPath(); ctx.arc(ep.x, ep.y, core * 2, 0, Math.PI * 2); ctx.fill();
+        }
+        ctx.restore();
+      });
+
+      // ── Nucleus ──────────────────────────────────
+      const pulse = 1 + 0.09 * Math.sin(t * 2.8);
+      const ng = ctx.createRadialGradient(cx, cy, 0, cx, cy, nucR * 2.2 * pulse);
+      ng.addColorStop(0,   'rgba(255,255,255,0.95)');
+      ng.addColorStop(0.18, color + 'ee');
+      ng.addColorStop(0.55, color + '30');
+      ng.addColorStop(1,   'transparent');
+      ctx.fillStyle = ng;
+      ctx.beginPath(); ctx.arc(cx, cy, nucR * 2.2 * pulse, 0, Math.PI * 2); ctx.fill();
+
+      ctx.beginPath(); ctx.arc(cx, cy, nucR, 0, Math.PI * 2);
+      ctx.fillStyle = '#080e1a'; ctx.fill();
+      ctx.strokeStyle = color; ctx.lineWidth = 1.5; ctx.stroke();
+
+      // Proton/neutron dots inside nucleus
+      const dots = Math.min(num, 7);
+      for (let i = 0; i < dots; i++) {
+        const a = (2 * Math.PI * i / dots) + t * 0.45;
+        ctx.fillStyle = i % 2 === 0 ? '#f87171' : '#60a5fa';
+        ctx.beginPath();
+        ctx.arc(
+          cx + nucR * 0.52 * Math.cos(a),
+          cy + nucR * 0.52 * Math.sin(a),
+          Math.max(1.3, nucR * 0.13), 0, Math.PI * 2
+        );
+        ctx.fill();
+      }
+
+      // Element symbol on nucleus
+      const fs = sym.length > 2 ? Math.max(7, nucR * 0.5)
+               : sym.length === 2 ? Math.max(8, nucR * 0.66)
+               :                    Math.max(10, nucR * 0.82);
+      ctx.font = `bold ${fs}px monospace`;
+      ctx.fillStyle = 'white'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(sym, cx, cy);
+
+      rafRef.current = requestAnimationFrame(frame);
+    }
+
+    rafRef.current = requestAnimationFrame(frame);
+    return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); last = null; };
+  }, [num, sz]);
+
+  return <canvas ref={ref} style={{ display: 'block', borderRadius: 8 }} />;
 }
+
+// ─────────────────────────────────────────────────
+// Deep-dive registry — element → interactive simulation pages
+// ─────────────────────────────────────────────────
+const DEEP_DIVES = {
+  1: [{
+    href: 'h2.html',
+    title: 'How H₂ forms',
+    blurb: 'Watch two hydrogen atoms find each other and share electrons — a 13-second animated covalent bond.',
+    accent: '#fbbf24',
+  }],
+};
 
 // ─────────────────────────────────────────────────
 // Cell
@@ -1352,6 +1755,7 @@ function Cell({ el, onClick, colorMode, cw, ch, selected }) {
       <span className="esym" style={{color:cc,fontSize:Math.max(9,cw*.36)}}>{sym}</span>
       <span className="emass" style={{fontSize:Math.max(4.5,cw*.13)}}>{mStr}</span>
       {isSyn&&<span className="syn-badge" style={{fontSize:Math.max(5,cw*.13),color:cc}}>⚗</span>}
+      {DEEP_DIVES[n]&&<span className="dd-glyph" style={{fontSize:Math.max(5,cw*.13),color:DEEP_DIVES[n][0].accent}}>▶</span>}
     </div>
   );
 }
@@ -1458,7 +1862,7 @@ function ElementDetail({ el, view, onNavigate, sz=215 }) {
             ].map(([k,v])=>(
               <div key={k} className="stat-box">
                 <div className="stat-k">{k}</div>
-                <div className="stat-v" style={{color:c,fontSize:String(v).length>7?9:11}}>{v}</div>
+                <div className="stat-v" style={{color:c,fontSize:String(v).length>7?12:16}}>{v}</div>
               </div>
             ))}
           </div>
@@ -1475,8 +1879,8 @@ function ElementDetail({ el, view, onNavigate, sz=215 }) {
           )}
 
           <div className="origin-box" style={{borderLeftColor:origInfo.c}}>
-            <strong style={{color:origInfo.c,fontSize:9}}>{origInfo.l}</strong>
-            <span style={{color:'rgba(203,213,225,.5)',marginLeft:6,fontSize:9}}>{origInfo.d}</span>
+            <strong style={{color:origInfo.c,fontSize:11.5,fontWeight:700,letterSpacing:'.02em'}}>{origInfo.l}</strong>
+            <span style={{color:'rgba(203,213,225,.6)',marginLeft:7,fontSize:11.5,lineHeight:1.55}}>{origInfo.d}</span>
           </div>
 
           <div className="bohr-explainer">
@@ -1518,6 +1922,27 @@ function ElementDetail({ el, view, onNavigate, sz=215 }) {
           <div className="loc-box" style={{borderLeftColor:c+'35'}}>
             <span className="loc-icon">⊕</span>
             <span>{ed.loc}</span>
+          </div>
+        </>
+      )}
+
+      {DEEP_DIVES[num]&&(
+        <>
+          <div className="dp-divider"/>
+          <div>
+            <div className="sec-hdr">DEEP DIVE</div>
+            {DEEP_DIVES[num].map(d=>(
+              <a key={d.href} href={d.href} target="_blank" rel="noopener"
+                className="deepdive-card"
+                style={{borderColor:d.accent+'45',background:d.accent+'0e',color:d.accent}}>
+                <span className="dd-icon">▶</span>
+                <div className="dd-content">
+                  <div className="dd-title">{d.title}</div>
+                  <div className="dd-blurb">{d.blurb}</div>
+                </div>
+                <span className="dd-arrow">↗</span>
+              </a>
+            ))}
           </div>
         </>
       )}
@@ -1695,7 +2120,8 @@ function PeriodicTable() {
 
         {/* AppBar */}
         <div className="appbar">
-          <span className="appbar-title">⬡ PERIODIC TABLE</span>
+          <span className="appbar-title">⬡</span>
+          <span className="appbar-label">Periodic Table</span>
           <div className="appbar-sep"/>
           <div className="btn-group">
             {['standard','janet','dufour'].map((v,i)=>(
@@ -1758,4 +2184,4 @@ _root.render(React.createElement(PeriodicTable));
     });
   </script>
 </body>
-</html>
+</html>s
